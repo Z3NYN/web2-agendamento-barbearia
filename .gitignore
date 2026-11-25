@@ -1,0 +1,34 @@
+# Java / Maven
+target/
+*.class
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Runtime e dados locais
+runtime/
+data/
+backups/
+*.mv.db
+*.trace.db
+*.log
+*.zip
+
+# Credenciais
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
