@@ -8,34 +8,124 @@ export function somarDias(iso: string, dias: number) {
   data.setUTCDate(data.getUTCDate() + dias);
   return data.toISOString().slice(0, 10);
 }
-const mes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
-const semana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
-const completa = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" });
+
+const fmtMes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
+const fmtDiaSemana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
+const fmtCompleta = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" });
 const utc = (s: string) => new Date(s + "T12:00:00Z");
 
-export default function Semana({ dia, escolher }: { dia: string; escolher: (dia: string) => void }) {
-  const menor = hoje();
-  const maior = somarDias(menor, 90);
-  const [inicio, setInicio] = useState(dia >= menor && dia <= maior ? dia : menor);
-  useEffect(() => {
-    setInicio(anterior => dia < anterior || dia > somarDias(anterior, 6) ? dia : anterior);
-  }, [dia]);
+export default function Semana({
+  dia,
+  escolher,
+  permitirPassado = false,
+}: {
+  dia: string;
+  escolher: (dia: string) => void;
+  permitirPassado?: boolean;
+}) {
+  const atual = hoje();
+  const menor = permitirPassado ? somarDias(atual, -365) : atual;
+  const maior = somarDias(atual, 90);
+  const [inicio, setInicio] = useState(dia >= menor && dia <= maior ? dia : atual);
+  const [direcao, setDirecao] = useState<"next" | "prev">("next");
   const [calendario, setCalendario] = useState(false);
+
+  useEffect(() => {
+    setInicio(anterior => (dia < anterior || dia > somarDias(anterior, 6) ? dia : anterior));
+  }, [dia]);
+
   const dias = Array.from({ length: 7 }, (_, i) => somarDias(inicio, i));
-  return <div className="week-picker">
-    <div className="week-top">
-      <button type="button" className="icon-btn" aria-label="Semana anterior" disabled={inicio <= menor}
-        onClick={() => setInicio([somarDias(inicio, -7), menor].sort()[1])}><ChevronLeft size={20} /></button>
-      <strong aria-live="polite">{mes.format(utc(inicio))}</strong>
-      <button type="button" className="icon-btn" aria-label="Próxima semana" disabled={dias[6] >= maior}
-        onClick={() => setInicio(somarDias(inicio, 7))}><ChevronRight size={20} /></button>
+
+  function voltarSemana() {
+    setDirecao("prev");
+    const alvo = somarDias(inicio, -7);
+    setInicio(alvo < menor ? menor : alvo);
+  }
+
+  function avancarSemana() {
+    setDirecao("next");
+    const alvo = somarDias(inicio, 7);
+    if (alvo <= maior) setInicio(alvo);
+  }
+
+  return (
+    <div className="week-picker">
+      <div className="week-bar">
+        <div className="week-month-group">
+          <strong className="week-month" aria-live="polite">{fmtMes.format(utc(dias[3]))}</strong>
+          <button
+            type="button"
+            className="week-jump-btn"
+            aria-expanded={calendario}
+            onClick={() => setCalendario(v => !v)}
+          >
+            <CalendarDays size={13} />
+            <span>{calendario ? "Ocultar" : "Outro mês"}</span>
+          </button>
+        </div>
+        <div className="week-nav">
+          <button
+            type="button"
+            className="icon-btn icon-btn--sm"
+            aria-label="Semana anterior"
+            disabled={inicio <= menor}
+            onClick={voltarSemana}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            className="icon-btn icon-btn--sm"
+            aria-label="Próxima semana"
+            disabled={dias[6] >= maior}
+            onClick={avancarSemana}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="week-strip" data-dir={direcao} key={inicio} role="group" aria-label="Dias da semana">
+        {dias.map(d => {
+          const ehHoje = d === atual;
+          const ativo = d === dia;
+          return (
+            <button
+              key={d}
+              type="button"
+              className={`day-pill${ativo ? " is-selected" : ""}${ehHoje ? " is-today" : ""}`}
+              disabled={d > maior || d < menor}
+              aria-label={fmtCompleta.format(utc(d))}
+              aria-pressed={ativo}
+              onClick={() => escolher(d)}
+            >
+              <span className="day-pill-wk">{fmtDiaSemana.format(utc(d)).replace(".", "").slice(0, 3)}</span>
+              <strong className="day-pill-num">{d.slice(8)}</strong>
+              {ehHoje && <i className="day-pill-dot" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {calendario && (
+        <div className="week-date-jump">
+          <Campo nome="Escolher data específica">
+            <input
+              type="date"
+              min={menor}
+              max={maior}
+              value={dia}
+              onChange={e => {
+                const d = e.target.value;
+                if (d >= menor && d <= maior) {
+                  setInicio(d);
+                  escolher(d);
+                }
+              }}
+            />
+          </Campo>
+        </div>
+      )}
     </div>
-    <div className="week-days" key={inicio}>{dias.map(d => <button key={d} type="button" disabled={d > maior}
-      aria-label={completa.format(utc(d))} aria-pressed={d === dia} onClick={() => escolher(d)}>
-      <small>{semana.format(utc(d)).replace(".", "")}</small><strong>{d.slice(8)}</strong></button>)}</div>
-    <button type="button" className="studio-text-link" aria-expanded={calendario} onClick={() => setCalendario(v => !v)}>
-      <CalendarDays size={17} /> Calendário mensal</button>
-    {calendario && <Campo nome="Data"><input type="date" min={menor} max={maior} value={dia}
-      onChange={e => { const d = e.target.value; if (d >= menor && d <= maior) { setInicio(d); escolher(d); } }} /></Campo>}
-  </div>;
+  );
 }

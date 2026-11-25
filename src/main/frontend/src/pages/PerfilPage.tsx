@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { ArrowRight, CalendarDays, Gift, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronRight, Gift, LogOut, RotateCcw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Aviso, Campo, Titulo } from "../components/Interface";
+import { Aviso, Campo, SkeletonList, Titulo } from "../components/Interface";
 import Botao from "../components/Botao";
 import api from "../services/api";
 import { sair, obterSessao, salvarSessao, temPapel } from "../services/auth";
-import { dataHora, instanteAgenda, mensagem, statusTexto } from "../services/formato";
+import { dataHora, iniciais, instanteAgenda, mensagem, statusTexto } from "../services/formato";
 import { useConsulta } from "../services/useConsulta";
 import type { Agendamento, Cartao } from "../types/Barbearia";
 import type { Usuario } from "../types/Usuario";
@@ -19,30 +19,64 @@ function FormPerfil({ u }: { u: Usuario }) {
   const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
   const [ocupado, setOcupado] = useState(false);
   const navigate = useNavigate();
+
   async function salvar(e: FormEvent) {
     e.preventDefault();
-    setOcupado(true); setFeedback({});
+    setOcupado(true);
+    setFeedback({});
     try {
       await api.put("/perfil", { nome, email, senhaAtual, novaSenha });
-      if (novaSenha) { sair(); navigate("/login", { replace: true }); return; }
+      if (novaSenha) {
+        sair();
+        navigate("/login", { replace: true });
+        return;
+      }
       const sessao = obterSessao();
       if (sessao) salvarSessao({ ...sessao, nome });
       setFeedback({ sucesso: "Perfil atualizado." });
-    } catch (e) { setFeedback({ erro: mensagem(e) }); }
-    finally { setOcupado(false); }
+    } catch (err) {
+      setFeedback({ erro: mensagem(err) });
+    } finally {
+      setOcupado(false);
+    }
   }
-  return <form className="panel form-stack form-narrow" onSubmit={salvar}>
-    <Aviso {...feedback} />
-    <Campo nome="Usuário"><input value={u.username} readOnly /></Campo>
-    <Campo nome="Nome"><input value={nome} onChange={e => setNome(e.target.value)} required maxLength={100} /></Campo>
-    <Campo nome="E-mail"><input value={email} onChange={e => setEmail(e.target.value)} required type="email" /></Campo>
-    <h2>Alterar senha</h2>
-    <Campo nome="Senha atual"><input value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} type="password"
-      autoComplete="current-password" required={Boolean(novaSenha)} maxLength={72} /></Campo>
-    <Campo nome="Nova senha"><input value={novaSenha} onChange={e => setNovaSenha(e.target.value)} type="password"
-      autoComplete="new-password" minLength={8} maxLength={72} /></Campo>
-    <Botao type="submit" disabled={ocupado}>Salvar perfil</Botao>
-  </form>;
+
+  return (
+    <form className="form-stack settings-form" onSubmit={salvar}>
+      <Aviso {...feedback} />
+      <div className="form-grid-2">
+        <Campo nome="Usuário"><input value={u.username} readOnly /></Campo>
+        <Campo nome="Nome"><input value={nome} onChange={e => setNome(e.target.value)} required maxLength={100} /></Campo>
+      </div>
+      <Campo nome="E-mail"><input value={email} onChange={e => setEmail(e.target.value)} required type="email" /></Campo>
+      <div className="form-divider">Alterar senha (opcional)</div>
+      <div className="form-grid-2">
+        <Campo nome="Senha atual">
+          <input
+            value={senhaAtual}
+            onChange={e => setSenhaAtual(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            required={Boolean(novaSenha)}
+            maxLength={72}
+          />
+        </Campo>
+        <Campo nome="Nova senha">
+          <input
+            value={novaSenha}
+            onChange={e => setNovaSenha(e.target.value)}
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={72}
+          />
+        </Campo>
+      </div>
+      <div>
+        <Botao type="submit" disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar alterações"}</Botao>
+      </div>
+    </form>
+  );
 }
 
 export default function PerfilPage() {
@@ -50,30 +84,178 @@ export default function PerfilPage() {
   const cliente = temPapel("CLIENTE");
   const ag = useConsulta<Agendamento[]>(cliente ? "/agendamentos" : null);
   const cartao = useConsulta<Cartao>(cliente ? "/fidelidade" : null);
-  const proximos = ag.dados?.filter(a => ["RESERVADO", "CONFIRMADO"].includes(a.status) && instanteAgenda(a.inicio) > Date.now());
-  const proximo = proximos?.at(-1);
-  const ultimos = ag.dados?.filter(a => !proximos?.some(p => p.id === a.id)).slice(0, 2);
   const navegar = useNavigate();
-  return <section className="studio-page studio-account stack"><Titulo titulo="Minha conta" />
-    <Aviso erro={u.erro || ag.erro || cartao.erro} carregando={u.carregando || ag.carregando || cartao.carregando} />
-    {u.dados && <div className="panel studio-inline-card"><span className="large-icon"><UserRound size={22} /></span>
-      <span><strong>{u.dados.nome}</strong><small className="muted">{u.dados.email}</small></span></div>}
-    {cliente && <>
-      <section className="panel stack">
-        <div className="section-heading"><h2>Próximo atendimento</h2><Link className="studio-text-link" to="/meus-horarios">Meus horários <ArrowRight size={15} /></Link></div>
-        {proximo ? <div className="studio-inline-card"><CalendarDays size={20} className="accent" /><span><strong>{proximo.servico}</strong>
-          <small>{dataHora(proximo.inicio)} · {proximo.barbeiro}</small></span><span className="status">{statusTexto[proximo.status]}</span></div>
-          : <p className="muted">Você ainda não tem um próximo horário.</p>}
-      </section>
-      {!!ultimos?.length && <section className="panel stack"><h2>Histórico recente</h2>{ultimos.map(a => <div className="list-row" key={a.id}>
-        <span><strong>{a.servico}</strong><p className="muted">{dataHora(a.inicio)}</p></span><span className="status">{statusTexto[a.status]}</span>
-      </div>)}</section>}
-      {cartao.dados && <Link to="/fidelidade" className="panel studio-inline-card"><span className="large-icon"><Gift size={20} /></span>
-        <span><strong>Fidelidade</strong><small>{cartao.dados.progresso} de {cartao.dados.meta} atendimentos elegíveis</small></span><ArrowRight size={17} /></Link>}
-    </>}
-    {u.dados && <details className="panel studio-info ajustes-conta"><summary>Editar dados e senha</summary><FormPerfil u={u.dados} /></details>}
-    <Botao variante="neutro" onClick={async () => {
-      try { await api.post("/logout"); } catch { /* A sessão local ainda é encerrada. */ } finally { sair(); navegar("/login", { replace: true }); }
-    }}>Sair da conta</Botao>
-  </section>;
+
+  const proximos = ag.dados?.filter(
+    a => ["RESERVADO", "CONFIRMADO"].includes(a.status) && instanteAgenda(a.inicio) > Date.now()
+  );
+  const proximo = proximos?.at(-1);
+  const ultimos = ag.dados?.filter(a => !proximos?.some(p => p.id === a.id)).slice(0, 3);
+  const recompensasLivres =
+    cartao.dados?.historico.filter(m => m.tipo === "RECOMPENSA" && !m.resgatadoEm && !m.agendamentoId) ?? [];
+
+  async function encerrarSessao() {
+    try {
+      await api.post("/logout");
+    } catch {
+      /* Sessão local sempre encerrada. */
+    } finally {
+      sair();
+      navegar("/login", { replace: true });
+    }
+  }
+
+  return (
+    <section className="stack">
+      <Titulo eyebrow="Conta" titulo="Meu Perfil" />
+      <Aviso erro={u.erro || ag.erro || cartao.erro} />
+      {u.carregando && <SkeletonList quantidade={3} />}
+
+      <div className="account-layout">
+        <div className="stack">
+          {u.dados && (
+            <div className="surface-card profile-identity">
+              <div className="avatar-lg">{iniciais(u.dados.nome)}</div>
+              <div className="profile-identity-copy">
+                <strong>{u.dados.nome}</strong>
+                <small>{u.dados.email}</small>
+                <span className="meta-chip">@{u.dados.username}</span>
+              </div>
+            </div>
+          )}
+
+          {cliente && (
+            <nav className="surface-card profile-menu" aria-label="Atalhos da conta">
+              <Link to="/meus-horarios" className="profile-menu-item">
+                <span className="profile-menu-icon"><CalendarDays size={17} /></span>
+                <span className="profile-menu-copy">
+                  <strong>Meus agendamentos</strong>
+                  <small>{proximos?.length ? `${proximos.length} ativo(s)` : "Consultar reservas e histórico"}</small>
+                </span>
+                <ChevronRight size={16} className="muted-arrow" />
+              </Link>
+
+              {cartao.dados && (
+                <Link to="/fidelidade" className="profile-menu-item">
+                  <span className="profile-menu-icon"><Gift size={17} /></span>
+                  <span className="profile-menu-copy">
+                    <strong>Fidelidade e recompensas</strong>
+                    <small className="tabular">
+                      {cartao.dados.progresso} de {cartao.dados.meta} selos
+                      {recompensasLivres.length > 0 ? ` · ${recompensasLivres.length} pronta(s)` : ""}
+                    </small>
+                  </span>
+                  <ChevronRight size={16} className="muted-arrow" />
+                </Link>
+              )}
+
+              <button type="button" className="profile-menu-item profile-menu-item--danger" onClick={() => void encerrarSessao()}>
+                <span className="profile-menu-icon"><LogOut size={17} /></span>
+                <span className="profile-menu-copy">
+                  <strong>Sair da conta</strong>
+                  <small>Encerrar sessão neste dispositivo</small>
+                </span>
+              </button>
+            </nav>
+          )}
+
+          {!cliente && (
+            <div>
+              <Botao variante="neutro" onClick={() => void encerrarSessao()}>
+                <LogOut size={16} /> Sair da conta
+              </Botao>
+            </div>
+          )}
+        </div>
+
+        <div className="stack">
+          {cliente && (
+            <>
+              <section className="surface-card stack-sm">
+                <div className="section-head">
+                  <h2>Próximo agendamento</h2>
+                  <Link className="text-link" to="/meus-horarios">Ver todos <ArrowRight size={14} /></Link>
+                </div>
+                {proximo ? (
+                  <div className="profile-appt-row">
+                    <span className="icon-badge icon-badge--sm"><CalendarDays size={16} /></span>
+                    <div className="profile-appt-copy">
+                      <strong>{proximo.servico}</strong>
+                      <small className="tabular">{dataHora(proximo.inicio)} · {proximo.barbeiro}</small>
+                    </div>
+                    <span className={`status-pill status-pill--${proximo.status.toLowerCase()}`}>
+                      <i className="status-dot" aria-hidden="true" />
+                      {statusTexto[proximo.status]}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="profile-empty-row">
+                    <p className="text-secondary">Você ainda não tem um horário marcado.</p>
+                    <Link to="/agendar" className="btn btn--primario btn--compacto">Agendar</Link>
+                  </div>
+                )}
+              </section>
+
+              {recompensasLivres.length > 0 && (
+                <section className="surface-card surface-card--highlight stack-sm">
+                  <div className="section-head">
+                    <h2>Recompensas disponíveis</h2>
+                    <Link className="text-link" to="/fidelidade">Ver cartão <ArrowRight size={14} /></Link>
+                  </div>
+                  <div className="list-panel">
+                    {recompensasLivres.map(r => (
+                      <div key={r.id} className="list-row">
+                        <strong>{r.premio}</strong>
+                        <Link
+                          className="btn btn--primario btn--compacto"
+                          to={`/agendar?servico=${r.servicoId}&premio=${r.id}`}
+                        >
+                          Resgatar <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {!!ultimos?.length && (
+                <section className="surface-card stack-sm">
+                  <h2>Histórico recente</h2>
+                  <div className="list-panel">
+                    {ultimos.map(a => (
+                      <div className="list-row" key={a.id}>
+                        <div className="list-copy">
+                          <strong>{a.servico}</strong>
+                          <p className="text-secondary tabular">{dataHora(a.inicio)} · {a.barbeiro}</p>
+                        </div>
+                        <div className="inline-actions">
+                          <span className={`status-pill status-pill--${a.status.toLowerCase()}`}>
+                            <i className="status-dot" aria-hidden="true" />
+                            {statusTexto[a.status]}
+                          </span>
+                          <Link
+                            to={`/agendar?servico=${a.servicoId}&profissional=${a.barbeiroId}`}
+                            className="btn btn--neutro btn--compacto"
+                          >
+                            <RotateCcw size={13} /> Repetir
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+
+          {u.dados && (
+            <details className="surface-card info-accordion" open={!cliente}>
+              <summary>Meus dados e senha</summary>
+              <FormPerfil u={u.dados} />
+            </details>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }

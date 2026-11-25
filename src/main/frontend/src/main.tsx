@@ -1,6 +1,6 @@
-// src/main.tsx
+import "./styles/tokens.css";
+import "./styles/motion.css";
 import "./index.css";
-import "./recuperacao.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

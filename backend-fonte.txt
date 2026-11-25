@@ -1,0 +1,2733 @@
+﻿
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\pom.xml =====
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.1</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>br.ueg.trindade</groupId>
+	<artifactId>soldado-do-corte</artifactId>
+	<version>3.0.0</version>
+	<name/>
+	<description/>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>21</java.version>
+	</properties>
+	<dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.12.6</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+        <finalName>app</finalName>
+        <resources>
+            <resource><directory>src/main/resources</directory></resource>
+            <resource><directory>src/main/frontend/dist</directory><targetPath>static</targetPath><filtering>false</filtering></resource>
+        </resources>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\resources\application.properties =====
+spring.application.name=soldado-do-corte
+spring.autoconfigure.exclude=org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+server.address=${SOLDADO_BIND:0.0.0.0}
+server.port=${SOLDADO_PORT:8080}
+server.shutdown=graceful
+spring.lifecycle.timeout-per-shutdown-phase=15s
+spring.datasource.url=${SOLDADO_DB_URL:jdbc:h2:file:./dados/barbearia;LOCK_TIMEOUT=15000}
+spring.datasource.username=${SOLDADO_DB_USER:sa}
+spring.datasource.password=${SOLDADO_DB_PASSWORD:}
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.open-in-view=false
+spring.servlet.multipart.max-file-size=2MB
+spring.servlet.multipart.max-request-size=3MB
+app.demo=${SOLDADO_DEMO:true}
+app.admin-password=${SOLDADO_ADMIN_PASSWORD:}
+jwt.secret=${SOLDADO_JWT_SECRET:}
+jwt.validade-ms=${SOLDADO_JWT_TTL:28800000}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\BraullyWeb2FullstackApplication.java =====
+package br.ueg.trindade.braully_web2_fullstack;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BraullyWeb2FullstackApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(BraullyWeb2FullstackApplication.class, args);
+	}
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\config\ConfiguracaoInicial.java =====
+package br.ueg.trindade.braully_web2_fullstack.config;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
+import br.ueg.trindade.braully_web2_fullstack.repository.*;
+import br.ueg.trindade.braully_web2_fullstack.service.*;
+
+@Configuration
+public class ConfiguracaoInicial {
+    @Bean
+    CommandLineRunner carregarDados(DadosIniciais dados) { return args -> dados.inicializar(); }
+}
+
+@Service
+class DadosIniciais {
+    private final BarbeariaRepository barbearias;
+    private final PermissaoRepository permissoes;
+    private final UsuarioService usuarios;
+    private final CatalogoService catalogo;
+    private final AgendamentoRepository agenda;
+    private final ExpedienteRepository expedientes;
+    private final FidelidadeService fidelidade;
+
+    @Value("${app.demo}") private boolean demo;
+    @Value("${app.admin-password}") private String senhaAdmin;
+
+    DadosIniciais(BarbeariaRepository barbearias, PermissaoRepository permissoes, UsuarioService usuarios,
+                 CatalogoService catalogo, AgendamentoRepository agenda, ExpedienteRepository expedientes,
+                 FidelidadeService fidelidade) {
+        this.barbearias = barbearias;
+        this.permissoes = permissoes;
+        this.usuarios = usuarios;
+        this.catalogo = catalogo;
+        this.agenda = agenda;
+        this.expedientes = expedientes;
+        this.fidelidade = fidelidade;
+    }
+
+    @Transactional(rollbackFor = IOException.class)
+    public void inicializar() throws IOException {
+        if (barbearias.count() > 0) return;
+        if (!demo && senhaAdmin.isBlank()) {
+            throw new IllegalStateException("Para uma instalaÃ§Ã£o nova sem demonstraÃ§Ã£o, defina SOLDADO_ADMIN_PASSWORD.");
+        }
+        papel("ADMIN", "Administra a barbearia.");
+        papel("BARBEIRO", "Acompanha os prÃ³prios atendimentos.");
+        papel("CLIENTE", "Agenda e consulta os prÃ³prios dados.");
+        var b = new Barbearia();
+        b.nome = demo ? "Studio Soldado do Corte" : "Minha barbearia";
+        b.descricao = "Escolha o serviÃ§o, o profissional e um horÃ¡rio disponÃ­vel.";
+        b.corDestaque = "#e6c89b";
+        b.corFundo = "#0d0d0d";
+        b.meta = 10;
+        b.antecedenciaMinutos = 120;
+        b.demonstracao = demo;
+        barbearias.saveAndFlush(b);
+        conta(demo ? "AdministraÃ§Ã£o Demo" : "AdministraÃ§Ã£o", "admin", demo ? "AdminDemo@2026" : senhaAdmin, "ADMIN");
+        if (demo) demonstracao(b);
+    }
+
+    private void papel(String nome, String descricao) {
+        if (permissoes.findByNome(nome).isEmpty()) permissoes.save(new Permissao(nome, descricao));
+    }
+
+    private Usuario conta(String nome, String username, String senha, String papel) {
+        return usuarios.criarConta(new UsuarioService.Entrada(nome, username, username + "@exemplo.test", senha), papel);
+    }
+
+    private void demonstracao(Barbearia loja) throws IOException {
+        try (var imagem = new ClassPathResource("demo/soldado.jpg").getInputStream()) {
+            loja.logo = imagem.readAllBytes();
+            loja.tipoLogo = "image/jpeg";
+            loja.versaoLogo = 1;
+        }
+        var cliente = conta("Alex Demo", "cliente", "ClienteDemo@2026", "CLIENTE");
+        var conta1 = conta("Rafa Demo", "barbeiro", "BarbeiroDemo@2026", "BARBEIRO");
+        var conta2 = conta("Luiz Demo", "luiz", "LuizDemo@2026", "BARBEIRO");
+        var corte = catalogo.servico(catalogo.gravar(null, new CatalogoService.EntradaServico(
+                "Corte clÃ¡ssico", "Acabamento na mÃ¡quina ou tesoura.", new BigDecimal("45.00"), 30, true, true)).id());
+        catalogo.gravar(null, new CatalogoService.EntradaServico(
+                "Barba", "Modelagem e acabamento.", new BigDecimal("30.00"), 30, true, true));
+        catalogo.gravar(null, new CatalogoService.EntradaServico(
+                "Corte e barba", "Corte completo com modelagem da barba.", new BigDecimal("65.00"), 60, true, true));
+        var rafa = catalogo.barbeiro(catalogo.gravar(null, new CatalogoService.EntradaBarbeiro(
+                "Rafa Demo", "DegradÃª, corte clÃ¡ssico e finalizaÃ§Ã£o", conta1.getId(), true)).id());
+        var luiz = catalogo.barbeiro(catalogo.gravar(null, new CatalogoService.EntradaBarbeiro(
+                "Luiz Demo", "Barba desenhada e cortes com tesoura", conta2.getId(), true)).id());
+        loja.premio = corte;
+        loja.fidelidadeAtiva = true;
+        for (var dia : DayOfWeek.values()) {
+            expediente(loja, null, dia);
+            for (var profissional : Set.of(rafa, luiz)) expediente(loja, profissional, dia);
+        }
+        var agora = Regra.agora().withSecond(0).withNano(0);
+        for (int dias = 9; dias >= 1; dias--) {
+            var a = reserva(cliente, rafa, corte, agora.toLocalDate().minusDays(dias).atTime(10, 0), Status.CONCLUIDO);
+            fidelidade.concluir(loja, a, a.fim);
+        }
+        reserva(cliente, rafa, corte, agora.minusMinutes(45), Status.CONFIRMADO);
+    }
+
+    private void expediente(Barbearia loja, Barbeiro profissional, DayOfWeek dia) {
+        var e = new Expediente();
+        e.barbearia = loja;
+        e.barbeiro = profissional;
+        e.dia = dia;
+        e.inicio = LocalTime.of(9, 0);
+        e.fim = LocalTime.of(19, 0);
+        expedientes.save(e);
+    }
+
+    private Agendamento reserva(Usuario cliente, Barbeiro barbeiro, Servico servico, LocalDateTime inicio, Status status) {
+        var a = new Agendamento();
+        a.cliente = cliente;
+        a.barbeiro = barbeiro;
+        a.servico = servico;
+        a.nomeServico = servico.nome;
+        a.elegivelNaReserva = true;
+        a.preco = servico.preco;
+        a.inicio = inicio;
+        a.fim = inicio.plusMinutes(servico.duracaoMinutos);
+        a.status = status;
+        return agenda.save(a);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\AgendamentoController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.time.*;
+import java.util.List;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
+import br.ueg.trindade.braully_web2_fullstack.service.*;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173")
+public class AgendamentoController {
+    private final AgendaService agenda;
+    private final DisponibilidadeService disponibilidade;
+
+    public AgendamentoController(AgendaService agenda, DisponibilidadeService disponibilidade) {
+        this.agenda = agenda;
+        this.disponibilidade = disponibilidade;
+    }
+
+    @GetMapping("/publico/horarios")
+    public List<LocalDateTime> horarios(@RequestParam Long servicoId, @RequestParam(required = false) Long barbeiroId, @RequestParam LocalDate data) {
+        return disponibilidade.horarios(servicoId, barbeiroId, data);
+    }
+
+    @GetMapping("/publico/proximos-horarios")
+    public List<LocalDateTime> proximos(@RequestParam Long servicoId, @RequestParam(required = false) Long barbeiroId,
+                                       @RequestParam(required = false) LocalDate aPartir) {
+        return disponibilidade.proximos(servicoId, barbeiroId, aPartir);
+    }
+
+    @GetMapping("/agendamentos")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    public List<AgendaService.View> listar(@RequestParam(required = false) LocalDate data,
+                                         @RequestParam(required = false) Long barbeiroId, Authentication auth) {
+        return agenda.listar(auth, data, barbeiroId);
+    }
+
+    @GetMapping("/agendamentos/proximos")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AgendaService.View> proximosDaSemana() { return agenda.proximosDaSemana(); }
+
+    @GetMapping("/agendamentos/cliente/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AgendaService.View> cliente(@PathVariable Long id) { return agenda.listarCliente(id, true); }
+
+    @GetMapping("/agendamentos/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    public AgendaService.View buscar(@PathVariable Long id, Authentication auth) { return agenda.buscar(id, auth); }
+
+    @GetMapping("/agendamentos/{id}/horarios")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    public List<LocalDateTime> horarios(@PathVariable Long id, @RequestParam Long barbeiroId,
+                                       @RequestParam LocalDate data, Authentication auth) {
+        return agenda.horariosReagendamento(id, barbeiroId, data, auth);
+    }
+
+    @PostMapping("/agendamentos")
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE')")
+    public AgendaService.View criar(@Valid @RequestBody AgendaService.Nova entrada, Authentication auth) {
+        return agenda.criar(entrada, auth);
+    }
+
+    @PutMapping("/agendamentos/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    public AgendaService.View reagendar(@PathVariable Long id, @Valid @RequestBody AgendaService.Reagendar entrada,
+                                      Authentication auth) {
+        return agenda.reagendar(id, entrada, auth);
+    }
+
+    @PutMapping("/agendamentos/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO')")
+    public AgendaService.View status(@PathVariable Long id, @Valid @RequestBody AlterarStatus entrada, Authentication auth) {
+        return agenda.status(id, entrada.status(), auth);
+    }
+
+    @DeleteMapping("/agendamentos/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    public AgendaService.View cancelar(@PathVariable Long id, Authentication auth) {
+        return agenda.status(id, Status.CANCELADO, auth);
+    }
+
+    public record AlterarStatus(@NotNull Status status) {}
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\AuthController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.Map;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+import br.ueg.trindade.braully_web2_fullstack.service.*;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
+public class AuthController {
+    private final AuthService auth;
+    private final UsuarioService usuarios;
+
+    public AuthController(AuthService auth, UsuarioService usuarios) {
+        this.auth = auth;
+        this.usuarios = usuarios;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            return ResponseEntity.ok(auth.login(request.username(), request.senha()));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(Map.of("erro", "UsuÃ¡rio ou senha invÃ¡lidos."));
+        }
+    }
+
+    @PostMapping("/cadastro")
+    public UsuarioService.Resumo cadastro(@Valid @RequestBody UsuarioService.Entrada entrada) {
+        return usuarios.criar(entrada);
+    }
+
+    @GetMapping("/perfil")
+    public UsuarioService.Resumo perfil(Authentication auth) {
+        return usuarios.buscarPorId(Identidade.id(auth));
+    }
+
+    @PutMapping("/perfil")
+    public UsuarioService.Resumo perfil(@Valid @RequestBody UsuarioService.Perfil entrada, Authentication auth) {
+        return usuarios.atualizarPerfil(Identidade.id(auth), entrada);
+    }
+
+    @PostMapping("/logout")
+    public void sair(Authentication auth) {
+        usuarios.revogarSessoes(Identidade.id(auth));
+    }
+
+    public record LoginRequest(@NotBlank @Size(max = 40) String username, @NotBlank @Size(max = 72) String senha) {}
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\BarbeariaController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.io.IOException;
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import br.ueg.trindade.braully_web2_fullstack.service.*;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173")
+public class BarbeariaController {
+    private final MarcaService marca;
+    private final CatalogoService catalogo;
+    private final DisponibilidadeService disponibilidade;
+
+    public BarbeariaController(MarcaService marca, CatalogoService catalogo, DisponibilidadeService disponibilidade) {
+        this.marca = marca;
+        this.catalogo = catalogo;
+        this.disponibilidade = disponibilidade;
+    }
+
+    @GetMapping("/publico/barbearia")
+    public MarcaService.Marca marca() { return marca.atual(); }
+
+    @GetMapping("/publico/expediente")
+    public List<DisponibilidadeService.ExpedienteView> expediente() {
+        return disponibilidade.expedientes().stream().filter(f -> f.barbeiroId() == null).toList();
+    }
+
+    @GetMapping("/publico/logo")
+    public ResponseEntity<byte[]> logo() {
+        var imagem = marca.logo();
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(imagem.tipo()))
+                .cacheControl(CacheControl.noCache()).body(imagem.bytes());
+    }
+
+    @GetMapping("/publico/servicos")
+    public List<CatalogoService.ServicoView> servicos() { return catalogo.servicos(true); }
+
+    @GetMapping("/publico/barbeiros")
+    public List<CatalogoService.BarbeiroView> barbeiros() { return catalogo.barbeiros(true); }
+
+    @PutMapping("/barbearia")
+    @PreAuthorize("hasRole('ADMIN')")
+    public MarcaService.Marca editar(@Valid @RequestBody MarcaService.Entrada entrada) { return marca.atualizar(entrada); }
+
+    @PostMapping(path = "/barbearia/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public MarcaService.Marca logo(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+        return marca.enviarLogo(arquivo);
+    }
+
+    @DeleteMapping("/barbearia/logo")
+    @PreAuthorize("hasRole('ADMIN')")
+    public MarcaService.Marca removerLogo() { return marca.removerLogo(); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\BarbeiroController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.BarbeiroView;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.EntradaBarbeiro;
+
+@RestController
+@RequestMapping("/api/barbeiros")
+@CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('ADMIN')")
+public class BarbeiroController {
+    private final CatalogoService catalogo;
+
+    public BarbeiroController(CatalogoService catalogo) { this.catalogo = catalogo; }
+
+    @GetMapping
+    public List<BarbeiroView> listar() { return catalogo.barbeiros(false); }
+
+    @GetMapping("/{id}")
+    public BarbeiroView buscar(@PathVariable Long id) { return catalogo.detalheBarbeiro(id); }
+
+    @PostMapping
+    public BarbeiroView criar(@Valid @RequestBody EntradaBarbeiro entrada) { return catalogo.gravar(null, entrada); }
+
+    @PutMapping("/{id}")
+    public BarbeiroView editar(@PathVariable Long id, @Valid @RequestBody EntradaBarbeiro entrada) {
+        return catalogo.gravar(id, entrada);
+    }
+
+    @DeleteMapping("/{id}")
+    public void excluir(@PathVariable Long id) { catalogo.excluirBarbeiro(id); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\DisponibilidadeController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.service.DisponibilidadeService;
+import br.ueg.trindade.braully_web2_fullstack.service.DisponibilidadeService.*;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('ADMIN')")
+public class DisponibilidadeController {
+    private final DisponibilidadeService disponibilidade;
+
+    public DisponibilidadeController(DisponibilidadeService disponibilidade) { this.disponibilidade = disponibilidade; }
+
+    @GetMapping("/expedientes")
+    public List<ExpedienteView> expedientes() { return disponibilidade.expedientes(); }
+
+    @GetMapping("/expedientes/{id}")
+    public ExpedienteView expediente(@PathVariable Long id) { return disponibilidade.expediente(id); }
+
+    @PostMapping("/expedientes")
+    public ExpedienteView expediente(@Valid @RequestBody EntradaExpediente e) { return disponibilidade.gravar(null, e); }
+
+    @PutMapping("/expedientes/{id}")
+    public ExpedienteView expediente(@PathVariable Long id, @Valid @RequestBody EntradaExpediente e) {
+        return disponibilidade.gravar(id, e);
+    }
+
+    @DeleteMapping("/expedientes/{id}")
+    public void removerExpediente(@PathVariable Long id) { disponibilidade.removerExpediente(id); }
+
+    @GetMapping("/bloqueios")
+    public List<BloqueioView> bloqueios() { return disponibilidade.bloqueios(); }
+
+    @GetMapping("/bloqueios/{id}")
+    public BloqueioView bloqueio(@PathVariable Long id) { return disponibilidade.bloqueio(id); }
+
+    @PostMapping("/bloqueios")
+    public BloqueioView bloqueio(@Valid @RequestBody EntradaBloqueio e) { return disponibilidade.gravar(null, e); }
+
+    @PutMapping("/bloqueios/{id}")
+    public BloqueioView bloqueio(@PathVariable Long id, @Valid @RequestBody EntradaBloqueio e) {
+        return disponibilidade.gravar(id, e);
+    }
+
+    @DeleteMapping("/bloqueios/{id}")
+    public void removerBloqueio(@PathVariable Long id) { disponibilidade.removerBloqueio(id); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\ErrosApi.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestControllerAdvice
+public class ErrosApi {
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<Map<String, String>> regra(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("erro", ex.getReason()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<Map<String, String>> validacao(MethodArgumentNotValidException ex) {
+        var campo = ex.getBindingResult().getFieldError();
+        String mensagem = campo == null ? "Confira os campos do formulÃ¡rio."
+                : campo.getField() + " â€” " + campo.getDefaultMessage();
+        return ResponseEntity.badRequest().body(Map.of("erro", mensagem));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Map<String, String>> integridade() {
+        return ResponseEntity.status(409).body(Map.of("erro", "JÃ¡ existe um registro com esses dados ou o cadastro tem vÃ­nculos."));
+    }
+
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    ResponseEntity<Map<String, String>> formato() {
+        return ResponseEntity.badRequest().body(Map.of("erro", "Confira o formato dos campos enviados."));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<Map<String, String>> tamanho() {
+        return ResponseEntity.status(413).body(Map.of("erro", "A imagem deve ter no mÃ¡ximo 2 MB."));
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\FidelidadeController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+import br.ueg.trindade.braully_web2_fullstack.service.*;
+
+@RestController
+@RequestMapping("/api/fidelidade")
+@CrossOrigin(origins = "http://localhost:5173")
+public class FidelidadeController {
+    private final FidelidadeService fidelidade;
+    private final UsuarioService usuarios;
+
+    public FidelidadeController(FidelidadeService fidelidade, UsuarioService usuarios) {
+        this.fidelidade = fidelidade;
+        this.usuarios = usuarios;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('CLIENTE')")
+    public FidelidadeService.Cartao meu(Authentication auth) { return fidelidade.cartao(Identidade.id(auth)); }
+
+    @GetMapping("/{clienteId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public FidelidadeService.Cartao cliente(@PathVariable Long clienteId) {
+        usuarios.buscarPorId(clienteId);
+        return fidelidade.cartao(clienteId);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\FotoController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Foto;
+import br.ueg.trindade.braully_web2_fullstack.service.FotoService;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+import java.time.Duration;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@RequestMapping("/api")
+public class FotoController {
+    private final FotoService fotos;
+
+    public FotoController(FotoService fotos) { this.fotos = fotos; }
+
+    @GetMapping("/publico/fotos")
+    public List<FotoService.FotoView> listar() { return fotos.listar(); }
+
+    @GetMapping("/publico/fotos/{id}")
+    public ResponseEntity<byte[]> buscar(@PathVariable UUID id) {
+        var foto = fotos.buscar(id);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(foto.tipo()))
+            .cacheControl(CacheControl.maxAge(Duration.ofMinutes(15))).body(foto.bytes());
+    }
+
+    @PostMapping(path = "/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public FotoService.FotoView salvar(@RequestParam Foto.Alvo alvo, @RequestParam(required = false) Long cadastroId,
+                                      @RequestParam(required = false) String legenda,
+                                      @RequestParam(required = false) String categoria,
+                                      @RequestParam MultipartFile arquivo) throws IOException {
+        return fotos.salvar(alvo, cadastroId, legenda, categoria, arquivo);
+    }
+
+    @DeleteMapping("/fotos/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void remover(@PathVariable UUID id) { fotos.remover(id); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\PermissaoController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.List;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
+import br.ueg.trindade.braully_web2_fullstack.service.PermissaoService;
+
+@RestController
+@RequestMapping("/api/permissoes")
+@CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('ADMIN')")
+public class PermissaoController {
+    private final PermissaoService permissoes;
+
+    public PermissaoController(PermissaoService permissoes) { this.permissoes = permissoes; }
+
+    public record Entrada(@NotBlank @Pattern(regexp = "[A-Z][A-Z_0-9]{1,29}") String nome,
+                          @NotBlank @Size(max = 220) String descricao) {}
+
+    @GetMapping
+    public List<Permissao> listar() { return permissoes.listar(); }
+
+    @GetMapping("/{id}")
+    public Permissao buscar(@PathVariable Long id) { return permissoes.buscar(id); }
+
+    @PostMapping
+    public Permissao criar(@Valid @RequestBody Entrada e) { return permissoes.criar(e.nome(), e.descricao()); }
+
+    @PutMapping("/{id}")
+    public Permissao editar(@PathVariable Long id, @Valid @RequestBody Entrada e) { return permissoes.editar(id, e.nome(), e.descricao()); }
+
+    @DeleteMapping("/{id}")
+    public void excluir(@PathVariable Long id) { permissoes.excluir(id); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\ReactController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@Controller
+public class ReactController {
+    @GetMapping({"/painel", "/inicio", "/catalogo", "/equipe", "/equipe/{id}", "/galeria", "/login", "/cadastro", "/agendar", "/meus-horarios", "/fidelidade", "/perfil", "/agenda",
+        "/servicos", "/profissionais", "/expediente", "/clientes", "/clientes/{id}", "/marca",
+        "/usuarios", "/usuarios/{id}", "/atribuir-permissoes", "/permissoes", "/permissoes/{id}"})
+    public String aplicacao() { return "forward:/index.html"; }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\ServicoController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.ServicoView;
+import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.EntradaServico;
+
+@RestController
+@RequestMapping("/api/servicos")
+@CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('ADMIN')")
+public class ServicoController {
+    private final CatalogoService catalogo;
+
+    public ServicoController(CatalogoService catalogo) { this.catalogo = catalogo; }
+
+    @GetMapping
+    public List<ServicoView> listar() { return catalogo.servicos(false); }
+
+    @GetMapping("/{id}")
+    public ServicoView buscar(@PathVariable Long id) { return catalogo.detalheServico(id); }
+
+    @PostMapping
+    public ServicoView criar(@Valid @RequestBody EntradaServico entrada) { return catalogo.gravar(null, entrada); }
+
+    @PutMapping("/{id}")
+    public ServicoView editar(@PathVariable Long id, @Valid @RequestBody EntradaServico entrada) {
+        return catalogo.gravar(id, entrada);
+    }
+
+    @DeleteMapping("/{id}")
+    public void excluir(@PathVariable Long id) { catalogo.excluirServico(id); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\controller\UsuarioController.java =====
+package br.ueg.trindade.braully_web2_fullstack.controller;
+
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+import br.ueg.trindade.braully_web2_fullstack.service.UsuarioService;
+
+@RestController
+@RequestMapping("/api/usuarios")
+@CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('ADMIN')")
+public class UsuarioController {
+    private final UsuarioService usuarios;
+
+    public UsuarioController(UsuarioService usuarios) { this.usuarios = usuarios; }
+
+    @GetMapping
+    public List<UsuarioService.Resumo> listar() { return usuarios.listarTodos(); }
+
+    @GetMapping({"/{id}", "/{id}/permissoes"})
+    public UsuarioService.Resumo buscar(@PathVariable Long id) { return usuarios.buscarPorId(id); }
+
+    @PostMapping
+    public UsuarioService.Resumo criar(@Valid @RequestBody UsuarioService.Entrada entrada) { return usuarios.criar(entrada); }
+
+    @PutMapping("/{id}")
+    public UsuarioService.Resumo editar(@PathVariable Long id, @Valid @RequestBody UsuarioService.Entrada entrada) {
+        return usuarios.atualizar(id, entrada);
+    }
+
+    @PutMapping("/{id}/ativar")
+    public UsuarioService.Resumo ativar(@PathVariable Long id) { return usuarios.ativar(id); }
+
+    @DeleteMapping("/{id}")
+    public void excluir(@PathVariable Long id, Authentication auth) { usuarios.excluir(id, Identidade.id(auth)); }
+
+    @PutMapping("/{id}/permissoes")
+    public UsuarioService.Resumo atribuir(@PathVariable Long id, @RequestBody List<Long> ids, Authentication auth) {
+        return usuarios.atribuirPermissoes(id, ids, Identidade.id(auth));
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Agendamento.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import jakarta.persistence.*;
+
+@Entity
+@Table(indexes = @Index(columnList = "barbeiro_id,inicio,fim"))
+public class Agendamento {
+    public enum Status { RESERVADO, CONFIRMADO, CONCLUIDO, CANCELADO, FALTOU }
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Usuario cliente;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Barbeiro barbeiro;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Servico servico;
+    public LocalDateTime inicio;
+    public LocalDateTime fim;
+    @Enumerated(EnumType.STRING) public Status status = Status.RESERVADO;
+    public String nomeServico;
+    public boolean beneficio;
+    public boolean elegivelNaReserva;
+    @Column(precision = 10, scale = 2) public BigDecimal preco;
+    public Long getId() { return id; }
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Barbearia.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import jakarta.persistence.*;
+
+@Entity
+public class Barbearia {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @Column(nullable = false) public String nome;
+    public String descricao;
+    public String endereco;
+    public String telefone;
+    public String instagram;
+    public String whatsapp;
+    public String corDestaque;
+    public String corFundo;
+    @Lob public byte[] logo;
+    public String tipoLogo;
+    public long versaoLogo;
+    public boolean demonstracao;
+    public boolean fidelidadeAtiva;
+    public int meta;
+    @ManyToOne(fetch = FetchType.LAZY) public Servico premio;
+    public int antecedenciaMinutos;
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Barbeiro.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import jakarta.persistence.*;
+
+@Entity
+public class Barbeiro {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Barbearia barbearia;
+    @OneToOne(fetch = FetchType.LAZY) @JoinColumn(unique = true) public Usuario usuario;
+    @Column(nullable = false) public String nome;
+    public String descricao;
+    public boolean ativo = true;
+
+    public Long getId() { return id; }
+    public String getNome() { return nome; }
+    public Usuario getUsuario() { return usuario; }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Bloqueio.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.time.LocalDateTime;
+import jakarta.persistence.*;
+
+@Entity
+public class Bloqueio {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Barbearia barbearia;
+    @ManyToOne(fetch = FetchType.LAZY) public Barbeiro barbeiro;
+    public LocalDateTime inicio;
+    public LocalDateTime fim;
+    public String motivo;
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Expediente.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import jakarta.persistence.*;
+
+@Entity
+public class Expediente {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Barbearia barbearia;
+    @ManyToOne(fetch = FetchType.LAZY) public Barbeiro barbeiro;
+    @Enumerated(EnumType.STRING) public DayOfWeek dia;
+    public LocalTime inicio;
+    public LocalTime fim;
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Foto.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import jakarta.persistence.*;
+import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+@Entity
+public class Foto {
+    public enum Alvo { ABERTURA, CAPA, SERVICO, BARBEIRO, GALERIA }
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    public UUID id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    public Barbearia barbearia;
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.VARCHAR) @Column(nullable = false, length = 24)
+    public Alvo alvo;
+    public Long cadastroId;
+    @Column(length = 120)
+    public String legenda;
+    @Column(length = 24)
+    public String categoria;
+    @Column(nullable = false)
+    public String tipo;
+    @Lob @Column(nullable = false)
+    public byte[] conteudo;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\MovimentoFidelidade.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.time.LocalDateTime;
+import jakarta.persistence.*;
+
+@Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"tipo", "agendamento_id"}))
+public class MovimentoFidelidade {
+    public enum Tipo { CREDITO, RECOMPENSA }
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Usuario cliente;
+    @ManyToOne(fetch = FetchType.LAZY) public Agendamento agendamento;
+    @Enumerated(EnumType.STRING) public Tipo tipo;
+    public LocalDateTime criadoEm;
+    public int quantidade;
+    @ManyToOne(fetch = FetchType.LAZY) public Servico premio;
+    public String nomePremio;
+    public LocalDateTime resgatadoEm;
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Permissao.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
+public class Permissao {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @jakarta.persistence.Column(nullable = false, unique = true)
+    private String nome;
+    private String descricao;
+
+    public Permissao() {
+    }
+
+    public Permissao(String nome, String descricao) {
+        this.nome = nome;
+        this.descricao = descricao;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
+    }
+}
+
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Servico.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.math.BigDecimal;
+import jakarta.persistence.*;
+
+@Entity
+public class Servico {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long id;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY) public Barbearia barbearia;
+    @Column(nullable = false) public String nome;
+    public String descricao;
+    @Column(nullable = false, precision = 10, scale = 2) public BigDecimal preco;
+    public int duracaoMinutos;
+    public boolean elegivel;
+    public boolean ativo = true;
+
+    public Long getId() { return id; }
+    public String getNome() { return nome; }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\model\Usuario.java =====
+package br.ueg.trindade.braully_web2_fullstack.model;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+
+@Entity
+public class Usuario {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String nome;
+    @jakarta.persistence.Column(nullable = false, unique = true)
+    private String username;
+    @JsonIgnore
+    private String senha;
+    private String email;
+    private boolean ativo = true;
+    private long versaoSessao;
+
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    @JsonIgnore public long getVersaoSessao() { return versaoSessao; }
+    public void revogarSessoes() { versaoSessao++; }
+
+    @ManyToMany
+    private Set<Permissao> permissoes = new HashSet<>();
+
+    public Usuario(){
+        
+    }
+
+    public Usuario(String nome, String username, String senha, String email) {
+        this.nome = nome;
+        this.username = username;
+        this.senha = senha;
+        this.email = email;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Set<Permissao> getPermissoes() {
+        return permissoes;
+    }
+
+    public void setPermissoes(Set<Permissao> permissoes) {
+        this.permissoes = permissoes;
+    }
+
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\AgendamentoRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Agendamento;
+
+public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
+    List<Agendamento> findByInicioGreaterThanEqualAndInicioLessThanOrderByInicioAsc(LocalDateTime inicio, LocalDateTime fim);
+    List<Agendamento> findByClienteIdAndInicioLessThanAndFimGreaterThan(Long clienteId, LocalDateTime fim, LocalDateTime inicio);
+    List<Agendamento> findByClienteIdOrderByInicioDesc(Long clienteId);
+    List<Agendamento> findByBarbeiroIdAndInicioLessThanAndFimGreaterThan(Long barbeiroId, LocalDateTime fim, LocalDateTime inicio);
+    List<Agendamento> findByInicioLessThanAndFimGreaterThan(LocalDateTime fim, LocalDateTime inicio);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\BarbeariaRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Barbearia;
+
+public interface BarbeariaRepository extends JpaRepository<Barbearia, Long> {
+    Optional<Barbearia> findFirstByOrderByIdAsc();
+
+    @Query("select min(b.id) from Barbearia b")
+    Optional<Long> idInstalacao();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select b from Barbearia b where b.id = :id")
+    Optional<Barbearia> bloquear(Long id);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\BarbeiroRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Barbeiro;
+
+public interface BarbeiroRepository extends JpaRepository<Barbeiro, Long> {
+    List<Barbeiro> findAllByOrderByNomeAsc();
+    boolean existsByUsuarioIdAndIdNot(Long usuarioId, Long id);
+    boolean existsByUsuarioId(Long usuarioId);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\BloqueioRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Bloqueio;
+
+public interface BloqueioRepository extends JpaRepository<Bloqueio, Long> {
+    List<Bloqueio> findByInicioLessThanAndFimGreaterThan(LocalDateTime fim, LocalDateTime inicio);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\ExpedienteRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.time.DayOfWeek;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Expediente;
+
+public interface ExpedienteRepository extends JpaRepository<Expediente, Long> {
+    List<Expediente> findByDia(DayOfWeek dia);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\FotoRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Foto;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+public interface FotoRepository extends JpaRepository<Foto, UUID> {
+    interface Metadados {
+        UUID getId();
+        Foto.Alvo getAlvo();
+        Long getCadastroId();
+        String getLegenda();
+        String getCategoria();
+    }
+
+    @Query("select f.id as id, f.alvo as alvo, f.cadastroId as cadastroId, f.legenda as legenda, f.categoria as categoria from Foto f where f.barbearia.id = :loja order by f.alvo, f.id")
+    List<Metadados> metadados(Long loja);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\MovimentoFidelidadeRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.MovimentoFidelidade;
+
+public interface MovimentoFidelidadeRepository extends JpaRepository<MovimentoFidelidade, Long> {
+    List<MovimentoFidelidade> findByClienteIdOrderByIdDesc(Long clienteId);
+    boolean existsByPremioIdAndResgatadoEmIsNull(Long premioId);
+    boolean existsByAgendamentoIdAndTipo(Long agendamentoId, MovimentoFidelidade.Tipo tipo);
+    Optional<MovimentoFidelidade> findByAgendamentoIdAndTipo(Long agendamentoId, MovimentoFidelidade.Tipo tipo);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\PermissaoRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
+
+public interface PermissaoRepository extends JpaRepository<Permissao, Long> {
+
+    Optional<Permissao> findByNome(String nome);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\ServicoRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import br.ueg.trindade.braully_web2_fullstack.model.Servico;
+
+public interface ServicoRepository extends JpaRepository<Servico, Long> {
+    List<Servico> findAllByOrderByNomeAsc();
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\repository\UsuarioRepository.java =====
+package br.ueg.trindade.braully_web2_fullstack.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Usuario;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, Long>{
+    
+    boolean existsByPermissoesId(Long permissaoId);
+
+    @EntityGraph(attributePaths = "permissoes")
+    Optional<Usuario> findByUsername(String username);
+
+    @EntityGraph(attributePaths = "permissoes")
+    Optional<Usuario> findWithPermissoesById(Long id);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\security\Identidade.java =====
+package br.ueg.trindade.braully_web2_fullstack.security;
+
+import org.springframework.security.core.Authentication;
+
+public record Identidade(Long id, String username) {
+    public static Long id(Authentication auth) {
+        return ((Identidade) auth.getPrincipal()).id();
+    }
+
+    public static boolean tem(Authentication auth, String papel) {
+        return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_" + papel));
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\security\JwtFilter.java =====
+package br.ueg.trindade.braully_web2_fullstack.security;
+
+import java.io.IOException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import br.ueg.trindade.braully_web2_fullstack.repository.UsuarioRepository;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+
+@Component
+public class JwtFilter extends OncePerRequestFilter {
+    private final JwtUtil jwt;
+    private final UsuarioRepository usuarios;
+
+    public JwtFilter(JwtUtil jwt, UsuarioRepository usuarios) {
+        this.jwt = jwt;
+        this.usuarios = usuarios;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return !request.getServletPath().startsWith("/api/");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+            throws ServletException, IOException {
+        String header = req.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            autenticar(header.substring(7));
+        }
+        chain.doFilter(req, res);
+    }
+
+    private void autenticar(String token) {
+        try {
+            var claims = jwt.extrairClaims(token);
+            Long versao = claims.get("versao", Long.class);
+            usuarios.findWithPermissoesById(Long.valueOf(claims.getSubject()))
+                    .filter(u -> u.isAtivo() && versao != null && u.getVersaoSessao() == versao)
+                    .ifPresent(usuario -> {
+                        var papeis = usuario.getPermissoes().stream()
+                                .map(p -> new SimpleGrantedAuthority("ROLE_" + p.getNome())).toList();
+                        var identidade = new Identidade(usuario.getId(), usuario.getUsername());
+                        SecurityContextHolder.getContext().setAuthentication(
+                                new UsernamePasswordAuthenticationToken(identidade, null, papeis));
+                    });
+        } catch (JwtException | IllegalArgumentException ignored) {
+            SecurityContextHolder.clearContext();
+        }
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\security\JwtUtil.java =====
+package br.ueg.trindade.braully_web2_fullstack.security;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
+import br.ueg.trindade.braully_web2_fullstack.model.Usuario;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+@Component
+public class JwtUtil {
+
+    @Value("${jwt.validade-ms}")
+    private long validadeMs;
+
+    @Value("${jwt.secret}")
+    private String secret;
+
+    private SecretKey chave;
+
+    @jakarta.annotation.PostConstruct
+    void inicializarChave() {
+        chave = secret.isBlank() ? Jwts.SIG.HS256.key().build()
+                : Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String gerarToken(Usuario usuario) {
+        List<String> permissoes = usuario.getPermissoes().stream()
+                .map(Permissao::getNome)
+                .toList();
+
+        return Jwts.builder()
+                .subject(usuario.getId().toString())
+                .claim("versao", usuario.getVersaoSessao())
+                .id(java.util.UUID.randomUUID().toString())
+                .claim("permissoes", permissoes)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + validadeMs))
+                .signWith(chave)
+                .compact();
+    }
+
+    public Claims extrairClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(chave)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\security\SecurityConfig.java =====
+package br.ueg.trindade.braully_web2_fullstack.security;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.deny())
+                        .contentSecurityPolicy(policy -> policy.policyDirectives(
+                            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((req, res, erro) -> responder(res, 401, "Entre na sua conta para continuar."))
+                        .accessDeniedHandler((req, res, erro) -> responder(res, 403, "VocÃª nÃ£o tem permissÃ£o para esta operaÃ§Ã£o.")))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/publico/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/login", "/api/cadastro").permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    private static void responder(jakarta.servlet.http.HttpServletResponse res, int status, String texto)
+            throws java.io.IOException {
+        res.setStatus(status);
+        res.setContentType("application/json;charset=UTF-8");
+        res.getWriter().write("{\"erro\":\"" + texto + "\"}");
+    }
+
+    // O JwtFilter Ã© um @Component: sem isto o Boot tambÃ©m o registraria no
+    // encadeamento de servlets e ele rodaria duas vezes por requisiÃ§Ã£o.
+    @Bean
+    public FilterRegistrationBean<JwtFilter> jwtFilterRegistration(JwtFilter filter) {
+        FilterRegistrationBean<JwtFilter> registro = new FilterRegistrationBean<>(filter);
+        registro.setEnabled(false);
+        return registro;
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuracao = new CorsConfiguration();
+        configuracao.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuracao.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuracao.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource origem = new UrlBasedCorsConfigurationSource();
+        origem.registerCorsConfiguration("/**", configuracao);
+        return origem;
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\AgendaService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.List;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
+import br.ueg.trindade.braully_web2_fullstack.repository.AgendamentoRepository;
+import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+
+@Service
+@Transactional
+public class AgendaService {
+    private final AgendamentoRepository agenda;
+    private final InstalacaoService instalacao;
+    private final CatalogoService catalogo;
+    private final UsuarioService usuarios;
+    private final DisponibilidadeService disponibilidade;
+    private final FidelidadeService fidelidade;
+
+    public AgendaService(AgendamentoRepository agenda, InstalacaoService instalacao, CatalogoService catalogo,
+                         UsuarioService usuarios, DisponibilidadeService disponibilidade, FidelidadeService fidelidade) {
+        this.agenda = agenda;
+        this.instalacao = instalacao;
+        this.catalogo = catalogo;
+        this.usuarios = usuarios;
+        this.disponibilidade = disponibilidade;
+        this.fidelidade = fidelidade;
+    }
+
+    public record Nova(@NotNull Long servicoId, Long barbeiroId, @NotNull LocalDateTime inicio, Long premioId,
+                       Long clienteId) {}
+    public record Reagendar(@NotNull Long barbeiroId, @NotNull LocalDateTime inicio) {}
+    public record View(Long id, Long clienteId, String cliente, Long barbeiroId, String barbeiro, Long servicoId,
+                       String servico, BigDecimal preco, LocalDateTime inicio, LocalDateTime fim, Status status,
+                       boolean beneficio, boolean podeAlterar) {}
+
+    @Transactional(readOnly = true)
+    public List<View> listar(Authentication auth, LocalDate data, Long barbeiro) {
+        if (!equipe(auth)) return listarCliente(Identidade.id(auth), false);
+        LocalDate dia = data == null ? Regra.agora().toLocalDate() : data;
+        return agenda.findByInicioGreaterThanEqualAndInicioLessThanOrderByInicioAsc(dia.atStartOfDay(), dia.plusDays(1).atStartOfDay())
+                .stream().filter(a -> (barbeiro == null || a.barbeiro.getId().equals(barbeiro)) && atende(a, auth))
+                .map(a -> view(a, true, 0)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<View> proximosDaSemana() {
+        var agora = Regra.agora();
+        return agenda.findByInicioGreaterThanEqualAndInicioLessThanOrderByInicioAsc(agora, agora.plusDays(7))
+                .stream().filter(DisponibilidadeService::pendente).limit(6).map(a -> view(a, true, 0)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<View> listarCliente(Long clienteId, boolean equipe) {
+        int antecedencia = instalacao.atual().antecedenciaMinutos;
+        return agenda.findByClienteIdOrderByInicioDesc(clienteId).stream().map(a -> view(a, equipe, antecedencia)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public View buscar(Long id, Authentication auth) {
+        var a = autorizado(id, auth);
+        return view(a, equipe(auth), instalacao.atual().antecedenciaMinutos);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> horariosReagendamento(Long id, Long barbeiroId, LocalDate data, Authentication auth) {
+        var a = autorizado(id, auth);
+        alterar(a, auth, instalacao.atual());
+        var b = destino(a, barbeiroId, auth);
+        return b.ativo ? disponibilidade.livres(b, data, duracao(a), id) : List.of();
+    }
+
+    public View criar(Nova e, Authentication auth) {
+        var loja = instalacao.bloquear();
+        boolean admin = Identidade.tem(auth, "ADMIN");
+        if (!admin && !Identidade.tem(auth, "CLIENTE")) throw Regra.proibida();
+        if (e.clienteId() != null && !admin) throw Regra.proibida();
+        if (admin && e.clienteId() == null) throw Regra.invalida("Selecione o cliente da reserva.");
+        Long clienteId = e.clienteId() == null ? Identidade.id(auth) : e.clienteId();
+        Usuario cliente = usuarios.buscar(clienteId);
+        if (!cliente.isAtivo() || cliente.getPermissoes().stream().noneMatch(p -> p.getNome().equals("CLIENTE"))) {
+            throw Regra.invalida("Selecione um cliente ativo.");
+        }
+        var s = catalogo.servico(e.servicoId());
+        if (!s.ativo) throw Regra.conflito("Esse serviÃ§o estÃ¡ desativado.");
+        validarAgendaDoCliente(clienteId, e.inicio(), s.duracaoMinutos, null);
+        var b = e.barbeiroId() == null ? disponibilidade.atribuir(e.inicio(), s.duracaoMinutos) : catalogo.barbeiro(e.barbeiroId());
+        validarHorario(b, e.inicio(), s.duracaoMinutos, null);
+        var a = new Agendamento();
+        a.barbeiro = b;
+        a.cliente = cliente;
+        a.servico = s;
+        a.nomeServico = s.nome;
+        a.beneficio = e.premioId() != null;
+        a.elegivelNaReserva = s.elegivel;
+        a.preco = a.beneficio ? BigDecimal.ZERO : s.preco;
+        a.inicio = e.inicio();
+        a.fim = e.inicio().plusMinutes(s.duracaoMinutos);
+        agenda.save(a);
+        if (a.beneficio) fidelidade.vincular(e.premioId(), a);
+        return view(a, admin, loja.antecedenciaMinutos);
+    }
+
+    public View reagendar(Long id, Reagendar e, Authentication auth) {
+        var loja = instalacao.bloquear();
+        var a = autorizado(id, auth);
+        alterar(a, auth, loja);
+        var b = destino(a, e.barbeiroId(), auth);
+        int duracao = duracao(a);
+        validarAgendaDoCliente(a.cliente.getId(), e.inicio(), duracao, id);
+        validarHorario(b, e.inicio(), duracao, a.id);
+        a.barbeiro = b;
+        a.inicio = e.inicio();
+        a.fim = e.inicio().plusMinutes(duracao);
+        a.status = Status.RESERVADO;
+        return view(a, equipe(auth), loja.antecedenciaMinutos);
+    }
+
+    public View status(Long id, Status destino, Authentication auth) {
+        var loja = instalacao.bloquear();
+        var a = autorizado(id, auth);
+        if (!equipe(auth) && destino != Status.CANCELADO) throw Regra.proibida();
+        alterar(a, auth, loja);
+        switch (destino) {
+            case CONFIRMADO -> {
+                if (a.status != Status.RESERVADO) throw Regra.conflito("Somente uma reserva pode ser confirmada.");
+            }
+            case CONCLUIDO -> {
+                if (a.status != Status.CONFIRMADO) throw Regra.conflito("Confirme o atendimento antes de concluir.");
+                if (a.fim.isAfter(Regra.agora())) throw Regra.conflito("Aguarde o fim do horÃ¡rio para concluir o atendimento.");
+                fidelidade.concluir(loja, a);
+            }
+            case FALTOU -> {
+                if (a.inicio.isAfter(Regra.agora())) throw Regra.conflito("Ainda nÃ£o Ã© possÃ­vel registrar a falta.");
+                fidelidade.liberar(a);
+            }
+            case CANCELADO -> fidelidade.liberar(a);
+            default -> throw Regra.conflito("TransiÃ§Ã£o de status invÃ¡lida.");
+        }
+        a.status = destino;
+        return view(a, equipe(auth), loja.antecedenciaMinutos);
+    }
+
+    private void alterar(Agendamento a, Authentication auth, Barbearia loja) {
+        if (!DisponibilidadeService.pendente(a)) throw Regra.conflito("Esse atendimento jÃ¡ foi encerrado.");
+        if (!equipe(auth) && !a.inicio.isAfter(Regra.agora().plusMinutes(loja.antecedenciaMinutos))) {
+            throw Regra.conflito("O prazo para cancelar ou reagendar pelo site terminou.");
+        }
+    }
+
+    private int duracao(Agendamento a) { return Math.toIntExact(Duration.between(a.inicio, a.fim).toMinutes()); }
+
+    private void validarAgendaDoCliente(Long clienteId, LocalDateTime inicio, int duracao, Long ignorar) {
+        var fim = inicio.plusMinutes(duracao);
+        if (agenda.findByClienteIdAndInicioLessThanAndFimGreaterThan(clienteId, fim, inicio).stream()
+                .anyMatch(a -> !a.id.equals(ignorar) && DisponibilidadeService.pendente(a))) {
+            throw Regra.conflito("JÃ¡ existe uma reserva para este cliente nesse intervalo.");
+        }
+    }
+
+    private void validarHorario(Barbeiro b, LocalDateTime inicio, int duracao, Long ignorar) {
+        if (!b.ativo || !disponibilidade.livres(b, inicio.toLocalDate(), duracao, ignorar).contains(inicio)) {
+            throw Regra.conflito("Esse horÃ¡rio nÃ£o estÃ¡ disponÃ­vel. Escolha outro horÃ¡rio.");
+        }
+    }
+
+    private Barbeiro destino(Agendamento a, Long id, Authentication auth) {
+        if (Identidade.tem(auth, "BARBEIRO") && !Identidade.tem(auth, "ADMIN") && !a.barbeiro.getId().equals(id)) {
+            throw Regra.proibida();
+        }
+        return catalogo.barbeiro(id);
+    }
+
+    private Agendamento autorizado(Long id, Authentication auth) {
+        var a = agenda.findById(id).orElseThrow(Regra::inexistente);
+        boolean autorizado = equipe(auth) ? atende(a, auth) : a.cliente.getId().equals(Identidade.id(auth));
+        if (!autorizado) throw Regra.inexistente();
+        return a;
+    }
+
+    private boolean equipe(Authentication auth) {
+        return Identidade.tem(auth, "ADMIN") || Identidade.tem(auth, "BARBEIRO");
+    }
+
+    private boolean atende(Agendamento a, Authentication auth) {
+        var conta = a.barbeiro.getUsuario();
+        return Identidade.tem(auth, "ADMIN") || (conta != null && conta.getId().equals(Identidade.id(auth)));
+    }
+
+    private View view(Agendamento a, boolean equipe, int antecedencia) {
+        boolean alterar = DisponibilidadeService.pendente(a)
+                && (equipe || a.inicio.isAfter(Regra.agora().plusMinutes(antecedencia)));
+        return new View(a.id, a.cliente.getId(), a.cliente.getNome(), a.barbeiro.getId(), a.barbeiro.getNome(),
+                a.servico.getId(), a.nomeServico, a.preco, a.inicio, a.fim, a.status, a.beneficio, alterar);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\AuthService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.util.List;
+import org.springframework.security.authentication.BadCredentialsException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
+import br.ueg.trindade.braully_web2_fullstack.model.Usuario;
+import br.ueg.trindade.braully_web2_fullstack.repository.UsuarioRepository;
+import br.ueg.trindade.braully_web2_fullstack.security.JwtUtil;
+
+@Service
+public class AuthService {
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Transactional(readOnly = true)
+    public LoginResposta login(String username, String senha) {
+        Usuario usuario = usuarioRepository.findByUsername(username.strip().toLowerCase(java.util.Locale.ROOT))
+                .orElseThrow(() -> new BadCredentialsException("Credenciais invÃ¡lidas"));
+
+        if (!usuario.isAtivo() || usuario.getSenha() == null
+                || senha.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72
+                || !passwordEncoder.matches(senha, usuario.getSenha())) {
+            throw new BadCredentialsException("Credenciais invÃ¡lidas");
+        }
+
+        List<String> permissoes = usuario.getPermissoes().stream()
+                .map(Permissao::getNome)
+                .toList();
+
+        return new LoginResposta(jwtUtil.gerarToken(usuario), usuario.getNome(), permissoes);
+    }
+
+    public record LoginResposta(String token, String nome, List<String> permissoes) {
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\CatalogoService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.math.BigDecimal;
+import java.util.List;
+import jakarta.validation.constraints.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.repository.*;
+
+@Service
+@Transactional
+public class CatalogoService {
+    private final InstalacaoService instalacao;
+    private final ServicoRepository servicos;
+    private final BarbeiroRepository barbeiros;
+    private final UsuarioService usuarios;
+    private final AgendamentoRepository agenda;
+    private final MovimentoFidelidadeRepository movimentos;
+
+    public CatalogoService(InstalacaoService instalacao, ServicoRepository servicos, BarbeiroRepository barbeiros,
+                           UsuarioService usuarios, AgendamentoRepository agenda, MovimentoFidelidadeRepository movimentos) {
+        this.instalacao = instalacao;
+        this.servicos = servicos;
+        this.barbeiros = barbeiros;
+        this.usuarios = usuarios;
+        this.agenda = agenda;
+        this.movimentos = movimentos;
+    }
+
+    public record EntradaServico(@NotBlank @Size(max = 100) String nome, @Size(max = 240) String descricao,
+                                 @NotNull @DecimalMin("0.00") @Digits(integer = 8, fraction = 2) BigDecimal preco,
+                                 @Min(5) @Max(480) int duracaoMinutos, boolean elegivel, boolean ativo) {}
+    public record ServicoView(Long id, String nome, String descricao, BigDecimal preco, int duracaoMinutos,
+                              boolean elegivel, boolean ativo) {}
+    public record EntradaBarbeiro(@NotBlank @Size(max = 100) String nome, @Size(max = 240) String descricao,
+                                  Long usuarioId, boolean ativo) {}
+    public record BarbeiroView(Long id, String nome, String descricao, Long usuarioId, boolean ativo) {}
+
+    private ServicoView view(Servico s) {
+        return new ServicoView(s.id, s.nome, s.descricao, s.preco, s.duracaoMinutos, s.elegivel, s.ativo);
+    }
+
+    private BarbeiroView view(Barbeiro b, boolean publico) {
+        return new BarbeiroView(b.id, b.nome, b.descricao, publico || b.usuario == null ? null : b.usuario.getId(), b.ativo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ServicoView> servicos(boolean publico) {
+        return servicos.findAllByOrderByNomeAsc().stream().filter(s -> !publico || s.ativo).map(this::view).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BarbeiroView> barbeiros(boolean publico) {
+        return barbeiros.findAllByOrderByNomeAsc().stream().filter(b -> !publico || b.ativo)
+                .map(b -> view(b, publico)).toList();
+    }
+
+    public List<Barbeiro> barbeirosAtivos() {
+        return barbeiros.findAllByOrderByNomeAsc().stream().filter(b -> b.ativo).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ServicoView detalheServico(Long id) { return view(servico(id)); }
+
+    @Transactional(readOnly = true)
+    public BarbeiroView detalheBarbeiro(Long id) { return view(barbeiro(id), false); }
+
+    public Servico servico(Long id) { return org.hibernate.Hibernate.unproxy(servicos.findById(id).orElseThrow(Regra::inexistente), Servico.class); }
+    public Barbeiro barbeiro(Long id) { return org.hibernate.Hibernate.unproxy(barbeiros.findById(id).orElseThrow(Regra::inexistente), Barbeiro.class); }
+
+    public ServicoView gravar(Long id, EntradaServico entrada) {
+        Barbearia loja = instalacao.bloquear();
+        Servico s = id == null ? new Servico() : servico(id);
+        if (!entrada.ativo()) verificarPremio(loja, id);
+        s.barbearia = loja;
+        s.nome = entrada.nome().strip();
+        s.descricao = entrada.descricao();
+        s.preco = entrada.preco();
+        s.duracaoMinutos = entrada.duracaoMinutos();
+        s.elegivel = entrada.elegivel();
+        s.ativo = entrada.ativo();
+        return view(servicos.save(s));
+    }
+
+    public void excluirServico(Long id) {
+        verificarPremio(instalacao.bloquear(), id);
+        Servico s = servico(id);
+        // O cadastro fica disponÃ­vel para reativaÃ§Ã£o e mantÃ©m o histÃ³rico.
+        s.ativo = false;
+    }
+
+    private void verificarPremio(Barbearia loja, Long id) {
+        if (id == null) return;
+        if ((loja.fidelidadeAtiva && loja.premio != null && id.equals(loja.premio.getId()))
+                || movimentos.existsByPremioIdAndResgatadoEmIsNull(id)) {
+            throw Regra.conflito("O serviÃ§o Ã© uma recompensa ativa ou jÃ¡ liberada. Troque a regra e utilize os benefÃ­cios emitidos antes de desativÃ¡-lo.");
+        }
+    }
+
+    public BarbeiroView gravar(Long id, EntradaBarbeiro entrada) {
+        Barbearia loja = instalacao.bloquear();
+        Barbeiro b = id == null ? new Barbeiro() : barbeiro(id);
+        Usuario conta = entrada.usuarioId() == null ? null : usuarios.buscar(entrada.usuarioId());
+        if (conta != null) {
+            if (!conta.isAtivo() || conta.getPermissoes().stream().noneMatch(p -> p.getNome().equals("BARBEIRO"))) {
+                throw Regra.invalida("Selecione uma conta ativa com perfil BARBEIRO.");
+            }
+            if (barbeiros.existsByUsuarioIdAndIdNot(conta.getId(), id == null ? -1L : id)) {
+                throw Regra.conflito("Essa conta jÃ¡ pertence a outro profissional.");
+            }
+        }
+        if (!entrada.ativo() && b.ativo && b.id != null) validarDesativacao(b.id);
+        b.barbearia = loja;
+        b.usuario = conta;
+        b.nome = entrada.nome().strip();
+        b.descricao = entrada.descricao();
+        b.ativo = entrada.ativo();
+        return view(barbeiros.save(b), false);
+    }
+
+    public void excluirBarbeiro(Long id) {
+        instalacao.bloquear();
+        Barbeiro b = barbeiro(id);
+        validarDesativacao(id);
+        b.ativo = false;
+    }
+
+    private void validarDesativacao(Long id) {
+        var agora = Regra.agora();
+        boolean temReserva = agenda.findByBarbeiroIdAndInicioLessThanAndFimGreaterThan(id, agora.plusYears(20), agora)
+                .stream().anyMatch(a -> a.status == Agendamento.Status.RESERVADO || a.status == Agendamento.Status.CONFIRMADO);
+        if (temReserva) throw Regra.conflito("Reagende ou cancele os prÃ³ximos atendimentos antes de desativar o profissional.");
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\DisponibilidadeService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.time.*;
+import java.util.*;
+import jakarta.validation.constraints.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.repository.*;
+
+@Service
+@Transactional
+public class DisponibilidadeService {
+    private final InstalacaoService instalacao;
+    private final CatalogoService catalogo;
+    private final ExpedienteRepository expedientes;
+    private final BloqueioRepository bloqueios;
+    private final AgendamentoRepository agenda;
+
+    public DisponibilidadeService(InstalacaoService instalacao, CatalogoService catalogo, ExpedienteRepository expedientes,
+                                  BloqueioRepository bloqueios, AgendamentoRepository agenda) {
+        this.instalacao = instalacao;
+        this.catalogo = catalogo;
+        this.expedientes = expedientes;
+        this.bloqueios = bloqueios;
+        this.agenda = agenda;
+    }
+
+    public record EntradaExpediente(Long barbeiroId, @NotNull DayOfWeek dia, @NotNull LocalTime inicio, @NotNull LocalTime fim) {}
+    public record ExpedienteView(Long id, Long barbeiroId, DayOfWeek dia, LocalTime inicio, LocalTime fim) {}
+    public record EntradaBloqueio(Long barbeiroId, @NotNull LocalDateTime inicio, @NotNull LocalDateTime fim,
+                                  @Size(max = 180) String motivo) {}
+    public record BloqueioView(Long id, Long barbeiroId, LocalDateTime inicio, LocalDateTime fim, String motivo) {}
+    private record Intervalo(LocalDateTime inicio, LocalDateTime fim) {
+        boolean inclui(LocalDateTime de, LocalDateTime ate) {
+            return !de.isBefore(inicio) && !ate.isAfter(fim);
+        }
+        boolean sobrepoe(LocalDateTime de, LocalDateTime ate) {
+            return de.isBefore(fim) && ate.isAfter(inicio);
+        }
+    }
+
+    public static boolean pendente(Agendamento a) {
+        return a.status == Agendamento.Status.RESERVADO || a.status == Agendamento.Status.CONFIRMADO;
+    }
+
+    private static boolean doBarbeiro(Barbeiro b, Long id) { return b != null && b.getId().equals(id); }
+    private static Long id(Barbeiro b) { return b == null ? null : b.getId(); }
+
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> horarios(Long servicoId, Long barbeiroId, LocalDate dia) {
+        var s = catalogo.servico(servicoId);
+        if (!s.ativo) return List.of();
+        if (barbeiroId == null) {
+            return catalogo.barbeirosAtivos().stream().flatMap(b -> livres(b, dia, s.duracaoMinutos, null).stream())
+                    .distinct().sorted().toList();
+        }
+        var b = catalogo.barbeiro(barbeiroId);
+        return b.ativo ? livres(b, dia, s.duracaoMinutos, null) : List.of();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> proximos(Long servicoId, Long barbeiroId, LocalDate aPartir) {
+        var hoje = Regra.agora().toLocalDate();
+        var primeiroDia = aPartir == null || aPartir.isBefore(hoje) ? hoje : aPartir;
+        if (primeiroDia.isAfter(hoje.plusDays(90))) return List.of();
+        var resultado = new ArrayList<LocalDateTime>();
+        for (var dia = primeiroDia; dia.isBefore(primeiroDia.plusDays(14))
+                && !dia.isAfter(hoje.plusDays(90)) && resultado.size() < 4; dia = dia.plusDays(1)) {
+            var livres = horarios(servicoId, barbeiroId, dia);
+            if (!livres.isEmpty()) resultado.add(livres.getFirst());
+        }
+        return resultado;
+    }
+
+    public Barbeiro atribuir(LocalDateTime inicio, int duracao) {
+        return catalogo.barbeirosAtivos().stream()
+                .filter(b -> livres(b, inicio.toLocalDate(), duracao, null).contains(inicio))
+                .findFirst().orElseThrow(() -> Regra.conflito("Esse horÃ¡rio nÃ£o estÃ¡ mais disponÃ­vel. Escolha outro."));
+    }
+
+    public List<LocalDateTime> livres(Barbeiro b, LocalDate dia, int duracao, Long ignorar) {
+        LocalDateTime agora = Regra.agora();
+        if (dia.isBefore(agora.toLocalDate()) || dia.isAfter(agora.toLocalDate().plusDays(90))) return List.of();
+        var semana = expedientes.findByDia(dia.getDayOfWeek());
+        var loja = semana.stream().filter(e -> e.barbeiro == null)
+                .map(e -> new Intervalo(dia.atTime(e.inicio), dia.atTime(e.fim))).toList();
+        var pessoal = semana.stream().filter(e -> doBarbeiro(e.barbeiro, b.id))
+                .map(e -> new Intervalo(dia.atTime(e.inicio), dia.atTime(e.fim))).toList();
+        if (loja.isEmpty() || pessoal.isEmpty()) return List.of();
+        var inicioDia = dia.atStartOfDay();
+        var fimDia = dia.plusDays(1).atStartOfDay();
+        var ocupados = new ArrayList<Intervalo>();
+        bloqueios.findByInicioLessThanAndFimGreaterThan(fimDia, inicioDia).stream()
+                .filter(e -> e.barbeiro == null || doBarbeiro(e.barbeiro, b.id))
+                .map(e -> new Intervalo(e.inicio, e.fim)).forEach(ocupados::add);
+        agenda.findByBarbeiroIdAndInicioLessThanAndFimGreaterThan(b.id, fimDia, inicioDia).stream()
+                .filter(a -> !a.id.equals(ignorar) && a.status != Agendamento.Status.CANCELADO && a.status != Agendamento.Status.FALTOU)
+                .map(a -> new Intervalo(a.inicio, a.fim)).forEach(ocupados::add);
+        var horarios = new ArrayList<LocalDateTime>();
+        for (var hora = inicioDia; hora.isBefore(fimDia); hora = hora.plusMinutes(15)) {
+            LocalDateTime inicio = hora;
+            LocalDateTime fim = inicio.plusMinutes(duracao);
+            if (inicio.isAfter(agora) && loja.stream().anyMatch(i -> i.inclui(inicio, fim))
+                    && pessoal.stream().anyMatch(i -> i.inclui(inicio, fim))
+                    && ocupados.stream().noneMatch(i -> i.sobrepoe(inicio, fim))) {
+                horarios.add(inicio);
+            }
+        }
+        return horarios;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExpedienteView> expedientes() { return expedientes.findAll().stream().map(this::view).toList(); }
+    @Transactional(readOnly = true)
+    public ExpedienteView expediente(Long id) { return view(expedientes.findById(id).orElseThrow(Regra::inexistente)); }
+    @Transactional(readOnly = true)
+    public List<BloqueioView> bloqueios() { return bloqueios.findAll().stream().map(this::view).toList(); }
+    @Transactional(readOnly = true)
+    public BloqueioView bloqueio(Long id) { return view(bloqueios.findById(id).orElseThrow(Regra::inexistente)); }
+
+    public ExpedienteView gravar(Long id, EntradaExpediente entrada) {
+        Barbearia loja = instalacao.bloquear();
+        if (!entrada.inicio().isBefore(entrada.fim())) throw Regra.invalida("O fim deve ser posterior ao inÃ­cio.");
+        var barbeiro = entrada.barbeiroId() == null ? null : catalogo.barbeiro(entrada.barbeiroId());
+        var e = id == null ? new Expediente() : expedientes.findById(id).orElseThrow(Regra::inexistente);
+        var diaAnterior = e.dia;
+        Long barbeiroAnterior = id(e.barbeiro);
+        e.barbearia = loja;
+        e.barbeiro = barbeiro;
+        e.dia = entrada.dia();
+        e.inicio = entrada.inicio();
+        e.fim = entrada.fim();
+        expedientes.saveAndFlush(e);
+        if (diaAnterior != null) validarReservasNoExpediente(diaAnterior, barbeiroAnterior);
+        return view(e);
+    }
+
+    public void removerExpediente(Long id) {
+        instalacao.bloquear();
+        var e = expedientes.findById(id).orElseThrow(Regra::inexistente);
+        var dia = e.dia;
+        Long barbeiroId = id(e.barbeiro);
+        expedientes.delete(e);
+        expedientes.flush();
+        validarReservasNoExpediente(dia, barbeiroId);
+    }
+
+    private void validarReservasNoExpediente(DayOfWeek dia, Long barbeiroId) {
+        var agora = Regra.agora();
+        var semana = expedientes.findByDia(dia);
+        for (var a : agenda.findByInicioLessThanAndFimGreaterThan(agora.plusDays(91), agora)) {
+            if (!pendente(a) || a.inicio.getDayOfWeek() != dia
+                    || (barbeiroId != null && !doBarbeiro(a.barbeiro, barbeiroId))) continue;
+            boolean comercial = semana.stream().anyMatch(e -> e.barbeiro == null && contem(e, a));
+            boolean profissional = semana.stream().anyMatch(e -> doBarbeiro(e.barbeiro, a.barbeiro.getId()) && contem(e, a));
+            if (!comercial || !profissional) {
+                throw Regra.conflito("Existem reservas nesse expediente. Reagende ou cancele esses horÃ¡rios primeiro.");
+            }
+        }
+    }
+
+    private boolean contem(Expediente e, Agendamento a) {
+        return !a.inicio.toLocalTime().isBefore(e.inicio) && !a.fim.toLocalTime().isAfter(e.fim);
+    }
+
+    public BloqueioView gravar(Long id, EntradaBloqueio entrada) {
+        Barbearia loja = instalacao.bloquear();
+        if (!entrada.inicio().isBefore(entrada.fim())) throw Regra.invalida("O fim deve ser posterior ao inÃ­cio.");
+        var conflitos = agenda.findByInicioLessThanAndFimGreaterThan(entrada.fim(), entrada.inicio());
+        if (conflitos.stream().anyMatch(a -> pendente(a)
+                && (entrada.barbeiroId() == null || doBarbeiro(a.barbeiro, entrada.barbeiroId())))) {
+            throw Regra.conflito("HÃ¡ reservas nesse intervalo. Reagende ou cancele antes de bloquear.");
+        }
+        var e = id == null ? new Bloqueio() : bloqueios.findById(id).orElseThrow(Regra::inexistente);
+        e.barbearia = loja;
+        e.barbeiro = entrada.barbeiroId() == null ? null : catalogo.barbeiro(entrada.barbeiroId());
+        e.inicio = entrada.inicio();
+        e.fim = entrada.fim();
+        e.motivo = entrada.motivo();
+        return view(bloqueios.save(e));
+    }
+
+    public void removerBloqueio(Long id) {
+        instalacao.bloquear();
+        bloqueios.delete(bloqueios.findById(id).orElseThrow(Regra::inexistente));
+    }
+
+    private ExpedienteView view(Expediente e) { return new ExpedienteView(e.id, id(e.barbeiro), e.dia, e.inicio, e.fim); }
+    private BloqueioView view(Bloqueio e) { return new BloqueioView(e.id, id(e.barbeiro), e.inicio, e.fim, e.motivo); }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\FidelidadeService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.model.MovimentoFidelidade.Tipo;
+import br.ueg.trindade.braully_web2_fullstack.repository.MovimentoFidelidadeRepository;
+
+@Service
+@Transactional
+public class FidelidadeService {
+    private final MovimentoFidelidadeRepository movimentos;
+    private final InstalacaoService instalacao;
+
+    public FidelidadeService(MovimentoFidelidadeRepository movimentos, InstalacaoService instalacao) {
+        this.movimentos = movimentos;
+        this.instalacao = instalacao;
+    }
+
+    public record Movimento(Long id, Tipo tipo, int quantidade, String premio, Long servicoId,
+                            LocalDateTime criadoEm, LocalDateTime resgatadoEm, Long agendamentoId) {}
+    public record Cartao(boolean ativo, int progresso, int meta, String proximoPremio, List<Movimento> historico) {}
+
+    @Transactional(readOnly = true)
+    public Cartao cartao(Long clienteId) {
+        Barbearia b = instalacao.atual();
+        var lista = movimentos.findByClienteIdOrderByIdDesc(clienteId);
+        return new Cartao(b.fidelidadeAtiva, saldo(lista), b.meta, b.premio == null ? null : b.premio.getNome(),
+                lista.stream().map(m -> new Movimento(m.id, m.tipo, m.quantidade, m.nomePremio,
+                        m.premio == null ? null : m.premio.getId(), m.criadoEm, m.resgatadoEm,
+                        m.agendamento == null ? null : m.agendamento.getId())).toList());
+    }
+
+    private int saldo(List<MovimentoFidelidade> lista) {
+        return lista.stream().mapToInt(m -> m.tipo == Tipo.CREDITO ? m.quantidade : -m.quantidade).sum();
+    }
+
+    // Chamado na transaÃ§Ã£o da agenda, com a linha da instalaÃ§Ã£o bloqueada.
+    public void concluir(Barbearia b, Agendamento a) {
+        concluir(b, a, Regra.agora());
+    }
+
+    public void concluir(Barbearia b, Agendamento a, LocalDateTime momento) {
+        if (a.beneficio) {
+            var premio = movimentos.findByAgendamentoIdAndTipo(a.id, Tipo.RECOMPENSA)
+                    .orElseThrow(() -> Regra.conflito("O benefÃ­cio nÃ£o estÃ¡ vinculado Ã  reserva."));
+            premio.resgatadoEm = momento;
+            return;
+        }
+        if (!b.fidelidadeAtiva || !a.elegivelNaReserva || movimentos.existsByAgendamentoIdAndTipo(a.id, Tipo.CREDITO)) {
+            return;
+        }
+        var credito = novo(a.cliente, Tipo.CREDITO, 1, momento);
+        credito.agendamento = a;
+        movimentos.save(credito);
+        int saldo = saldo(movimentos.findByClienteIdOrderByIdDesc(a.cliente.getId()));
+        while (saldo >= b.meta) {
+            var premio = novo(a.cliente, Tipo.RECOMPENSA, b.meta, momento);
+            premio.premio = b.premio;
+            premio.nomePremio = b.premio.getNome();
+            movimentos.save(premio);
+            saldo -= b.meta;
+        }
+    }
+
+    public void vincular(Long premioId, Agendamento a) {
+        var m = movimentos.findById(premioId).orElseThrow(Regra::inexistente);
+        if (m.tipo != Tipo.RECOMPENSA || !m.cliente.getId().equals(a.cliente.getId())) throw Regra.proibida();
+        if (m.resgatadoEm != null || m.agendamento != null || !m.premio.getId().equals(a.servico.getId())) {
+            throw Regra.conflito("O benefÃ­cio jÃ¡ foi reservado, utilizado ou pertence a outro serviÃ§o.");
+        }
+        m.agendamento = a;
+    }
+
+    public void liberar(Agendamento a) {
+        if (!a.beneficio) return;
+        movimentos.findByAgendamentoIdAndTipo(a.id, Tipo.RECOMPENSA).ifPresent(m -> m.agendamento = null);
+    }
+
+    private MovimentoFidelidade novo(Usuario u, Tipo tipo, int quantidade, LocalDateTime momento) {
+        var m = new MovimentoFidelidade();
+        m.cliente = u;
+        m.tipo = tipo;
+        m.quantidade = quantidade;
+        m.criadoEm = momento;
+        return m;
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\FotoService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Foto;
+import br.ueg.trindade.braully_web2_fullstack.repository.FotoRepository;
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+@Service
+@Transactional
+public class FotoService {
+    private final FotoRepository fotos;
+    private final InstalacaoService instalacao;
+    private final CatalogoService catalogo;
+
+    public FotoService(FotoRepository fotos, InstalacaoService instalacao, CatalogoService catalogo) {
+        this.fotos = fotos;
+        this.instalacao = instalacao;
+        this.catalogo = catalogo;
+    }
+
+    public record FotoView(UUID id, Foto.Alvo alvo, Long cadastroId, String legenda, String categoria, String url) {}
+
+    private FotoView view(UUID id, Foto.Alvo alvo, Long cadastroId, String legenda, String categoria) {
+        return new FotoView(id, alvo, cadastroId, legenda, categoria, "/api/publico/fotos/" + id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FotoView> listar() {
+        return fotos.metadados(instalacao.atual().id).stream()
+            .map(f -> view(f.getId(), f.getAlvo(), f.getCadastroId(), f.getLegenda(), f.getCategoria())).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public MarcaService.Imagem buscar(UUID id) {
+        Foto foto = fotos.findById(id).orElseThrow(Regra::inexistente);
+        return new MarcaService.Imagem(foto.conteudo, foto.tipo);
+    }
+
+    public FotoView salvar(Foto.Alvo alvo, Long cadastro, String legenda, String categoria, MultipartFile arquivo) throws IOException {
+        if ((alvo == Foto.Alvo.SERVICO || alvo == Foto.Alvo.BARBEIRO) != (cadastro != null))
+            throw Regra.invalida("Selecione um cadastro vÃ¡lido para a foto.");
+        if (legenda != null && legenda.length() > 120) throw Regra.invalida("Use uma legenda de atÃ© 120 caracteres.");
+        var imagem = MarcaService.validarImagem(arquivo);
+        var loja = instalacao.bloquear();
+        if (alvo == Foto.Alvo.SERVICO) catalogo.servico(cadastro);
+        if (alvo == Foto.Alvo.BARBEIRO) catalogo.barbeiro(cadastro);
+        var existentes = fotos.metadados(loja.id).stream()
+            .filter(f -> f.getAlvo() == alvo && Objects.equals(f.getCadastroId(), cadastro)).toList();
+        if (alvo == Foto.Alvo.GALERIA && existentes.size() >= 12)
+            throw Regra.invalida("A galeria comporta atÃ© 12 fotos.");
+        if (alvo != Foto.Alvo.GALERIA) existentes.forEach(f -> fotos.deleteById(f.getId()));
+        var foto = new Foto();
+        foto.barbearia = loja;
+        foto.alvo = alvo;
+        foto.cadastroId = cadastro;
+        foto.legenda = legenda;
+        if (alvo == Foto.Alvo.GALERIA) {
+            if (categoria != null && !java.util.Set.of("Cortes", "Barba", "Ambiente", "Outros").contains(categoria))
+                throw Regra.invalida("Selecione uma categoria de galeria vÃ¡lida.");
+            foto.categoria = categoria == null ? "Outros" : categoria;
+        }
+        foto.tipo = imagem.tipo();
+        foto.conteudo = imagem.bytes();
+        fotos.save(foto);
+        return view(foto.id, foto.alvo, foto.cadastroId, foto.legenda, foto.categoria);
+    }
+
+    public void remover(UUID id) {
+        var loja = instalacao.bloquear();
+        if (fotos.metadados(loja.id).stream().noneMatch(f -> f.getId().equals(id))) throw Regra.inexistente();
+        fotos.deleteById(id);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\InstalacaoService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import br.ueg.trindade.braully_web2_fullstack.model.Barbearia;
+import br.ueg.trindade.braully_web2_fullstack.repository.BarbeariaRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class InstalacaoService {
+    private final BarbeariaRepository barbearias;
+
+    public InstalacaoService(BarbeariaRepository barbearias) {
+        this.barbearias = barbearias;
+    }
+
+    public Barbearia atual() {
+        return barbearias.findFirstByOrderByIdAsc().orElseThrow(Regra::inexistente);
+    }
+
+    // A mesma linha serializa escritas de agenda, catÃ¡logo e fidelidade por instalaÃ§Ã£o.
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Barbearia bloquear() {
+        Long id = barbearias.idInstalacao().orElseThrow(Regra::inexistente);
+        return barbearias.bloquear(id).orElseThrow(Regra::inexistente);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\MarcaService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.constraints.*;
+import br.ueg.trindade.braully_web2_fullstack.model.Barbearia;
+import br.ueg.trindade.braully_web2_fullstack.model.Servico;
+
+@Service
+@Transactional
+public class MarcaService {
+    private final InstalacaoService instalacao;
+    private final CatalogoService catalogo;
+
+    public MarcaService(InstalacaoService instalacao, CatalogoService catalogo) {
+        this.instalacao = instalacao;
+        this.catalogo = catalogo;
+    }
+
+    public record Entrada(@NotBlank @Size(max = 100) String nome, @Size(max = 220) String descricao,
+                          @Size(max = 220) String endereco, @Size(max = 40) String telefone,
+                          @NotBlank @Pattern(regexp = "#[0-9a-fA-F]{6}") String corDestaque,
+                          @NotBlank @Pattern(regexp = "#[0-9a-fA-F]{6}") String corFundo,
+                          boolean demonstracao, boolean fidelidadeAtiva, @Min(1) @Max(100) int meta,
+                          Long premioId, @Min(0) @Max(10080) int antecedenciaMinutos,
+                          @Size(max = 30) @Pattern(regexp = "[a-zA-Z0-9._]*") String instagram,
+                          @Size(max = 15) @Pattern(regexp = "(?:[1-9][0-9]{7,14})?") String whatsapp) {}
+    public record Marca(String nome, String descricao, String endereco, String telefone, String corDestaque,
+                        String corFundo, String logo, boolean demonstracao, boolean fidelidadeAtiva, int meta,
+                        Long premioId, String nomePremio, int antecedenciaMinutos, String instagram, String whatsapp) {}
+    public record Imagem(byte[] bytes, String tipo) {}
+
+    private Marca view(Barbearia b) {
+        String imagem = b.logo == null ? null : "/api/publico/logo?v=" + b.versaoLogo;
+        return new Marca(b.nome, b.descricao, b.endereco, b.telefone, b.corDestaque, b.corFundo,
+                imagem, b.demonstracao, b.fidelidadeAtiva, b.meta,
+                b.premio == null ? null : b.premio.getId(), b.premio == null ? null : b.premio.getNome(), b.antecedenciaMinutos, b.instagram, b.whatsapp);
+    }
+
+    @Transactional(readOnly = true)
+    public Marca atual() { return view(instalacao.atual()); }
+
+    @Transactional(readOnly = true)
+    public Imagem logo() {
+        Barbearia b = instalacao.atual();
+        if (b.logo == null) throw Regra.inexistente();
+        return new Imagem(b.logo, b.tipoLogo);
+    }
+
+    public Marca atualizar(Entrada e) {
+        Barbearia b = instalacao.bloquear();
+        Servico premio = e.premioId() == null ? null : catalogo.servico(e.premioId());
+        if (e.fidelidadeAtiva() && (premio == null || !premio.ativo)) {
+            throw Regra.invalida("Escolha um serviÃ§o ativo como recompensa.");
+        }
+        b.nome = e.nome().strip();
+        b.descricao = e.descricao();
+        b.endereco = e.endereco();
+        b.telefone = e.telefone();
+        if (e.instagram() != null) b.instagram = e.instagram();
+        if (e.whatsapp() != null) b.whatsapp = e.whatsapp();
+        b.corDestaque = e.corDestaque();
+        b.corFundo = e.corFundo();
+        b.demonstracao = e.demonstracao();
+        b.fidelidadeAtiva = e.fidelidadeAtiva();
+        b.meta = e.meta();
+        b.premio = premio;
+        b.antecedenciaMinutos = e.antecedenciaMinutos();
+        return view(b);
+    }
+
+    public Marca enviarLogo(MultipartFile arquivo) throws IOException {
+        Imagem imagem = validarImagem(arquivo);
+        Barbearia b = instalacao.bloquear();
+        b.logo = imagem.bytes();
+        b.tipoLogo = imagem.tipo();
+        b.versaoLogo++;
+        return view(b);
+    }
+
+    static Imagem validarImagem(MultipartFile arquivo) throws IOException {
+        if (arquivo.isEmpty() || arquivo.getSize() > 2_097_152) throw Regra.invalida("Selecione uma imagem de atÃ© 2 MB.");
+        try (var entrada = arquivo.getInputStream(); var imagem = ImageIO.createImageInputStream(entrada)) {
+            var leitores = ImageIO.getImageReaders(imagem);
+            if (!leitores.hasNext()) throw Regra.invalida("Envie um PNG ou JPEG vÃ¡lido.");
+            var leitor = leitores.next();
+            try {
+                leitor.setInput(imagem);
+                String formato = leitor.getFormatName();
+                if (!(formato.equalsIgnoreCase("JPEG") || formato.equalsIgnoreCase("PNG"))
+                        || leitor.getWidth(0) > 5000 || leitor.getHeight(0) > 5000) {
+                    throw Regra.invalida("Use um PNG ou JPEG com atÃ© 5000 pixels por lado.");
+                }
+                // Decodifica e reencoda para armazenar somente a imagem validada.
+                var resultado = new java.io.ByteArrayOutputStream();
+                ImageIO.write(leitor.read(0), formato, resultado);
+                if (resultado.size() == 0 || resultado.size() > 2_097_152) throw Regra.invalida("A imagem processada excede 2 MB.");
+                return new Imagem(resultado.toByteArray(), formato.equalsIgnoreCase("PNG") ? "image/png" : "image/jpeg");
+            } finally {
+                leitor.dispose();
+            }
+        } catch (javax.imageio.IIOException ex) {
+            throw Regra.invalida("A imagem estÃ¡ danificada ou incompleta.");
+        }
+    }
+
+    public Marca removerLogo() {
+        Barbearia b = instalacao.bloquear();
+        b.logo = null;
+        b.tipoLogo = null;
+        b.versaoLogo++;
+        return view(b);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\PermissaoService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.util.List;
+import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
+import br.ueg.trindade.braully_web2_fullstack.repository.*;
+
+@Service
+@Transactional
+public class PermissaoService {
+    private static final Set<String> PADRAO = Set.of("ADMIN", "BARBEIRO", "CLIENTE");
+    private final PermissaoRepository permissoes;
+    private final UsuarioRepository usuarios;
+    private final InstalacaoService instalacao;
+
+    public PermissaoService(PermissaoRepository permissoes, UsuarioRepository usuarios, InstalacaoService instalacao) {
+        this.permissoes = permissoes;
+        this.usuarios = usuarios;
+        this.instalacao = instalacao;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Permissao> listar() { return permissoes.findAll(); }
+
+    public Permissao buscar(Long id) { return permissoes.findById(id).orElseThrow(Regra::inexistente); }
+
+    public Permissao criar(String nome, String descricao) { return permissoes.save(new Permissao(nome, descricao)); }
+
+    public Permissao editar(Long id, String nome, String descricao) {
+        instalacao.bloquear();
+        Permissao p = buscar(id);
+        if (PADRAO.contains(p.getNome()) && !p.getNome().equals(nome)) {
+            throw Regra.conflito("O identificador de um perfil do sistema Ã© fixo.");
+        }
+        p.setNome(nome);
+        p.setDescricao(descricao);
+        return p;
+    }
+
+    public void excluir(Long id) {
+        instalacao.bloquear();
+        Permissao p = buscar(id);
+        if (PADRAO.contains(p.getNome()) || usuarios.existsByPermissoesId(id)) {
+            throw Regra.conflito("Essa permissÃ£o Ã© do sistema ou estÃ¡ atribuÃ­da a um usuÃ¡rio.");
+        }
+        permissoes.delete(p);
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\Regra.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+public final class Regra {
+    private Regra() {}
+
+    public static LocalDateTime agora() {
+        return LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
+    }
+
+    public static ResponseStatusException inexistente() {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro nÃ£o encontrado.");
+    }
+
+    public static ResponseStatusException invalida(String mensagem) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, mensagem);
+    }
+
+    public static ResponseStatusException conflito(String mensagem) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, mensagem);
+    }
+
+    public static ResponseStatusException proibida() {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN, "VocÃª nÃ£o tem acesso a esta operaÃ§Ã£o.");
+    }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\java\br\ueg\trindade\braully_web2_fullstack\service\UsuarioService.java =====
+package br.ueg.trindade.braully_web2_fullstack.service;
+
+import java.util.*;
+import java.nio.charset.StandardCharsets;
+import jakarta.validation.constraints.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import br.ueg.trindade.braully_web2_fullstack.model.*;
+import br.ueg.trindade.braully_web2_fullstack.repository.*;
+
+@Service
+@Transactional
+public class UsuarioService {
+    private final UsuarioRepository usuarios;
+    private final PermissaoRepository permissoes;
+    private final PasswordEncoder encoder;
+    private final InstalacaoService instalacao;
+    private final BarbeiroRepository barbeiros;
+
+    public UsuarioService(UsuarioRepository usuarios, PermissaoRepository permissoes,
+                          PasswordEncoder encoder, InstalacaoService instalacao, BarbeiroRepository barbeiros) {
+        this.usuarios = usuarios;
+        this.permissoes = permissoes;
+        this.encoder = encoder;
+        this.instalacao = instalacao;
+        this.barbeiros = barbeiros;
+    }
+
+    public record Entrada(@NotBlank @Size(max = 100) String nome,
+                          @NotBlank @Pattern(regexp = "[a-zA-Z0-9._-]{3,40}") String username,
+                          @NotBlank @Email @Size(max = 150) String email, @Size(max = 72) String senha) {}
+    public record Perfil(@NotBlank @Size(max = 100) String nome, @NotBlank @Email @Size(max = 150) String email,
+                         @Size(max = 72) String senhaAtual, @Size(max = 72) String novaSenha) {}
+    public record Resumo(Long id, String nome, String username, String email, boolean ativo, List<Permissao> permissoes) {}
+
+    public static Resumo resumo(Usuario u) {
+        return new Resumo(u.getId(), u.getNome(), u.getUsername(), u.getEmail(), u.isAtivo(),
+                u.getPermissoes().stream().sorted(Comparator.comparing(Permissao::getNome)).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Resumo> listarTodos() {
+        return usuarios.findAll().stream().map(UsuarioService::resumo).sorted(Comparator.comparing(Resumo::nome)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Resumo buscarPorId(Long id) {
+        return resumo(buscar(id));
+    }
+
+    public Usuario buscar(Long id) {
+        return usuarios.findWithPermissoesById(id).orElseThrow(Regra::inexistente);
+    }
+
+    public Resumo criar(Entrada entrada) {
+        return resumo(criarConta(entrada, "CLIENTE"));
+    }
+
+    public Usuario criarConta(Entrada e, String papel) {
+        String username = e.username().toLowerCase(Locale.ROOT);
+        Usuario u = new Usuario(e.nome().strip(), username, codificar(e.senha()), e.email().strip());
+        u.getPermissoes().add(permissoes.findByNome(papel).orElseThrow());
+        return usuarios.save(u);
+    }
+
+    public Resumo atualizar(Long id, Entrada e) {
+        instalacao.bloquear();
+        Usuario u = buscar(id);
+        u.setNome(e.nome().strip());
+        String username = e.username().toLowerCase(Locale.ROOT);
+        if (!username.equals(u.getUsername())) {
+            u.setUsername(username);
+            u.revogarSessoes();
+        }
+        u.setEmail(e.email().strip());
+        if (e.senha() != null && !e.senha().isBlank()) {
+            u.setSenha(codificar(e.senha()));
+            u.revogarSessoes();
+        }
+        return resumo(u);
+    }
+
+    public Resumo atualizarPerfil(Long id, Perfil e) {
+        instalacao.bloquear();
+        Usuario u = buscar(id);
+        u.setNome(e.nome().strip());
+        u.setEmail(e.email().strip());
+        if (e.novaSenha() != null && !e.novaSenha().isBlank()) {
+            if (e.senhaAtual() == null || e.senhaAtual().getBytes(StandardCharsets.UTF_8).length > 72
+                    || !encoder.matches(e.senhaAtual(), u.getSenha())) {
+                throw Regra.invalida("A senha atual estÃ¡ incorreta.");
+            }
+            u.setSenha(codificar(e.novaSenha()));
+            u.revogarSessoes();
+        }
+        return resumo(u);
+    }
+
+    public void revogarSessoes(Long id) {
+        instalacao.bloquear();
+        buscar(id).revogarSessoes();
+    }
+
+    public void excluir(Long id, Long autor) {
+        instalacao.bloquear();
+        if (id.equals(autor)) throw Regra.conflito("VocÃª nÃ£o pode desativar a prÃ³pria conta.");
+        Usuario usuario = buscar(id);
+        usuario.setAtivo(false);
+        usuario.revogarSessoes();
+    }
+
+    public Resumo ativar(Long id) {
+        instalacao.bloquear();
+        Usuario u = buscar(id);
+        u.setAtivo(true);
+        return resumo(u);
+    }
+
+    public Resumo atribuirPermissoes(Long id, List<Long> ids, Long autor) {
+        instalacao.bloquear();
+        if (id.equals(autor)) throw Regra.conflito("Sua prÃ³pria permissÃ£o nÃ£o pode ser alterada.");
+        Usuario usuario = buscar(id);
+        if (ids.isEmpty() || ids.contains(null)) throw Regra.invalida("Selecione ao menos uma permissÃ£o.");
+        Set<Permissao> selecao = new HashSet<>(permissoes.findAllById(ids));
+        if (selecao.size() != new HashSet<>(ids).size()) throw Regra.invalida("PermissÃ£o invÃ¡lida.");
+        if (barbeiros.existsByUsuarioId(id) && selecao.stream().noneMatch(p -> p.getNome().equals("BARBEIRO"))) {
+            throw Regra.conflito("Desvincule a conta do profissional antes de remover o perfil BARBEIRO.");
+        }
+        usuario.setPermissoes(selecao);
+        usuario.revogarSessoes();
+        return resumo(usuario);
+    }
+
+    private String codificar(String senha) {
+        if (senha == null || senha.isBlank() || senha.length() < 8 || senha.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw Regra.invalida("A senha precisa ter pelo menos 8 caracteres e no mÃ¡ximo 72 bytes.");
+        }
+        return encoder.encode(senha);
+    }
+}
+

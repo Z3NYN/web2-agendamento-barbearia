@@ -58,9 +58,9 @@ class DadosIniciais {
         papel("CLIENTE", "Agenda e consulta os próprios dados.");
         var b = new Barbearia();
         b.nome = demo ? "Studio Soldado do Corte" : "Minha barbearia";
-        b.descricao = "Escolha o serviço, o profissional e um horário disponível.";
-        b.corDestaque = "#e6c89b";
-        b.corFundo = "#0d0d0d";
+        b.descricao = "Corte, barba e acabamento com horário marcado.";
+        b.corDestaque = "#D4BD98";
+        b.corFundo = "#121212";
         b.meta = 10;
         b.antecedenciaMinutos = 120;
         b.demonstracao = demo;
@@ -78,9 +78,11 @@ class DadosIniciais {
     }
 
     private void demonstracao(Barbearia loja) throws IOException {
-        try (var imagem = new ClassPathResource("demo/soldado.jpg").getInputStream()) {
+        var png = new ClassPathResource("demo/marca.png");
+        var recurso = png.exists() ? png : new ClassPathResource("demo/soldado.jpg");
+        try (var imagem = recurso.getInputStream()) {
             loja.logo = imagem.readAllBytes();
-            loja.tipoLogo = "image/jpeg";
+            loja.tipoLogo = png.exists() ? "image/png" : "image/jpeg";
             loja.versaoLogo = 1;
         }
         var cliente = conta("Alex Demo", "cliente", "ClienteDemo@2026", "CLIENTE");

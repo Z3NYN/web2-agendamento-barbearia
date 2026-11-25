@@ -1,0 +1,2674 @@
+﻿
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\package.json =====
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "5.3.0",
+    "@fontsource/dm-sans": "5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "axios": "^1.20.0",
+    "lucide-react": "1.72.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\index.html =====
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#141311" />
+    <title>Studio Soldado do Corte</title>
+  </head>
+  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+</html>
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\App.tsx =====
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import Layout from "./components/Layout";
+import { MarcaProvider } from "./components/MarcaContext";
+import Home from "./pages/Home";
+import PainelPage from "./pages/PainelPage";
+import { EquipePublica, GaleriaPage, ServicosPublicos } from "./pages/VitrinePages";
+import LoginPage from "./pages/LoginPage";
+import UsuariosPage from "./pages/UsuariosPage";
+import UsuarioDetailPage from "./pages/UsuarioDetailPage";
+import UsuarioPermissoesPage from "./pages/UsuarioPermissoesPage";
+import PermissoesPage from "./pages/PermissoesPage";
+import PermissaoDetailPage from "./pages/PermissaoDetailPage";
+import AgendarPage from "./pages/AgendarPage";
+import AgendaPage from "./pages/AgendaPage";
+import FidelidadePage from "./pages/FidelidadePage";
+import PerfilPage from "./pages/PerfilPage";
+import { ServicosPage, ProfissionaisPage, ExpedientePage } from "./pages/CatalogoPages";
+import { ClientesPage, ClientePage } from "./pages/ClientesPage";
+import MarcaPage from "./pages/MarcaPage";
+import { obterToken, temPapel } from "./services/auth";
+import { Titulo } from "./components/Interface";
+
+function RequireAuth({ papeis }: { papeis?: string[] }) {
+  const { pathname, search } = useLocation();
+  if (!obterToken()) return <Navigate to="/login" state={{ destino: pathname + search }} replace />;
+  if (papeis && !papeis.some(temPapel)) return <Titulo titulo="Acesso restrito" detalhe="Seu perfil nÃ£o tem acesso a esta pÃ¡gina." />;
+  return <Outlet />;
+}
+
+export default function App() {
+  return <MarcaProvider><Routes><Route element={<Layout />}>
+    <Route index element={<Home />} />
+    <Route path="inicio" element={<Home />} />
+    <Route path="catalogo" element={<ServicosPublicos />} />
+    <Route path="equipe" element={<EquipePublica />} />
+    <Route path="equipe/:id" element={<EquipePublica />} />
+    <Route path="galeria" element={<GaleriaPage />} />
+    <Route path="login" element={<LoginPage />} />
+    <Route path="cadastro" element={<LoginPage cadastro />} />
+    <Route path="agendar" element={<AgendarPage />} />
+    <Route element={<RequireAuth papeis={["CLIENTE"]} />}>
+      <Route path="meus-horarios" element={<AgendaPage />} />
+      <Route path="fidelidade" element={<FidelidadePage />} />
+    </Route>
+    <Route element={<RequireAuth />}>
+      <Route path="perfil" element={<PerfilPage />} />
+    </Route>
+    <Route element={<RequireAuth papeis={["ADMIN", "BARBEIRO"]} />}>
+      <Route path="agenda" element={<AgendaPage equipe />} />
+    </Route>
+    <Route element={<RequireAuth papeis={["ADMIN"]} />}>
+      <Route path="painel" element={<PainelPage />} />
+      <Route path="servicos" element={<ServicosPage />} />
+      <Route path="profissionais" element={<ProfissionaisPage />} />
+      <Route path="expediente" element={<ExpedientePage />} />
+      <Route path="clientes" element={<ClientesPage />} />
+      <Route path="clientes/:id" element={<ClientePage />} />
+      <Route path="marca" element={<MarcaPage />} />
+      <Route path="usuarios" element={<UsuariosPage />} />
+      <Route path="usuarios/:id" element={<UsuarioDetailPage />} />
+      <Route path="atribuir-permissoes" element={<UsuarioPermissoesPage />} />
+      <Route path="permissoes" element={<PermissoesPage />} />
+      <Route path="permissoes/:id" element={<PermissaoDetailPage />} />
+    </Route>
+    <Route path="*" element={<Titulo titulo="PÃ¡gina nÃ£o encontrada" />} />
+  </Route></Routes></MarcaProvider>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\index.css =====
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: "DM Sans", sans-serif;
+  background: #141311;
+  color: #f4efe6;
+}
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 280px; }
+.app {
+  --base: #141311;
+  --gold: #dab26d;
+  --surface: color-mix(in srgb, var(--base) 88%, #857b70);
+  --surface-raised: color-mix(in srgb, var(--base) 76%, #857b70);
+  --line: color-mix(in srgb, var(--base) 62%, #857b70);
+  --muted: #c2b8a9;
+  --display: "Barlow Condensed", sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  background: var(--base);
+}
+.shell { width: min(1152px, calc(100% - 36px)); margin-inline: auto; }
+.site-main { flex: 1; padding-block: 28px 48px; }
+.site-header { position: relative; z-index: 10; background: color-mix(in srgb, var(--base) 95%, black); border-bottom: 1px solid var(--line); }
+.site-header-inner { position: relative; min-height: 69px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.site-footer { border-top: 1px solid var(--line); padding-block: 23px; color: var(--muted); font-size: .82rem; }
+.wordmark { display: flex; align-items: center; min-width: 0; gap: 9px; font-family: var(--display); font-size: 1.22rem; font-weight: 700; line-height: 1; }
+.wordmark-icon, .large-icon { display: inline-grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--gold) 43%, var(--line)); color: var(--gold); background: color-mix(in srgb, var(--gold) 9%, var(--base)); }
+.large-icon { width: 48px; height: 48px; }
+.header-actions { display: flex; gap: 7px; align-items: center; }
+.menu-toggle { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
+.site-nav { display: none; }
+.site-nav--open { display: flex; position: absolute; top: calc(100% + 1px); left: 0; right: 0; flex-direction: column; padding: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0 0 10px 10px; box-shadow: 0 20px 30px #0005; }
+.site-nav a, .admin-menu summary { min-height: 43px; display: flex; gap: 7px; align-items: center; padding: 8px 11px;
+  border-radius: 7px; color: var(--muted); font-size: .89rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.site-nav a:hover, .site-nav a.active, .admin-menu summary:hover { color: var(--gold); background: color-mix(in srgb, var(--gold) 8%, transparent); }
+.admin-menu summary { list-style: none; }
+.admin-menu summary::-webkit-details-marker { display: none; }
+.admin-menu > div { padding-left: 12px; }
+.skip { position: fixed; top: 5px; left: 10px; transform: translateY(-150%); padding: 10px; background: var(--gold); color: #17120c; z-index: 50; }
+.skip:focus { transform: none; }
+button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+a, button { transition: background .16s ease, color .16s ease, border-color .16s ease; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px;
+  padding: 9px 13px; border: 1px solid transparent; border-radius: 7px; font-size: .88rem; font-weight: 700; cursor: pointer; text-align: center; }
+.button--primario { background: var(--gold); color: #17120c; }
+.button--primario:hover { background: color-mix(in srgb, var(--gold) 82%, white); }
+.button--neutro { border-color: var(--line); color: #f4efe6; background: color-mix(in srgb, var(--base) 75%, transparent); }
+.button--neutro:hover { border-color: var(--gold); color: var(--gold); }
+.button--perigo { border-color: #62413b; color: #ffd1c8; background: #311f1e; }
+.button--perigo:hover { background: #50302c; }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+h1, h2, h3 { margin: 0; font-family: var(--display); line-height: .98; font-weight: 700; }
+h1 { font-size: clamp(2.4rem, 7vw, 4.1rem); }
+h2 { font-size: clamp(1.7rem, 4.5vw, 2.65rem); }
+h3 { font-size: 1.47rem; overflow-wrap: anywhere; }
+p { margin: 0; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.accent { color: var(--gold); }
+.hero { display: grid; align-items: stretch; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
+  background: radial-gradient(ellipse at 3% 100%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 65%), var(--surface); }
+.hero-copy { padding: clamp(24px, 5.6vw, 65px); position: relative; }
+.eyebrow { display: flex; align-items: center; gap: 10px; color: var(--gold); font-size: .73rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+.eyebrow span { width: 16px; height: 1px; background: currentColor; flex: 0 0 auto; }
+.hero h1 { margin-top: 19px; font-size: clamp(3.15rem, 6.6vw, 5.3rem); line-height: .83; letter-spacing: -.025em; }
+.hero h1 em { color: var(--gold); font-style: normal; }
+.hero p { margin-block: 24px 21px; max-width: 32ch; color: var(--muted); font-size: 1rem; }
+.hero-media { min-height: 195px; margin: 0; display: grid; place-items: center; background: #0b0a09; overflow: hidden; }
+.hero-media img { width: 100%; height: 100%; max-height: 435px; object-fit: contain; }
+.hero-placeholder { color: var(--gold); }
+.catalog { margin-block: 35px 20px; scroll-margin-top: 20px; }
+.section-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+.tag { display: inline-flex; align-items: center; vertical-align: middle; min-height: 25px; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--line); color: var(--muted); font-family: "DM Sans", sans-serif; font-size: .72rem; font-weight: 700; }
+.service-card { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 19px; display: grid; gap: 11px; min-width: 0; }
+.service-card > div:first-child, .price, .card-tail a { color: var(--gold); }
+.price { font-weight: 700; }
+.service-card p, .card-tail { color: var(--muted); font-size: .88rem; }
+.card-tail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px; padding-top: 7px; border-top: 1px solid var(--line); }
+.card-tail a, .card-tail span, .inline-icon { display: inline-flex; align-items: center; gap: 7px; }
+.card-tail a { min-height: 44px; font-weight: 700; }
+.loyalty-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border: 1px solid var(--line); border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 8%, var(--base)); padding: clamp(16px, 3vw, 26px); }
+.loyalty-banner div { flex: 1 1 235px; }
+.loyalty-banner p, .page-heading p { color: var(--muted); margin-top: 7px; }
+.contact { margin-top: 20px; }
+.contact p { display: flex; align-items: center; gap: 8px; margin-block: 5px; }
+.page-heading { margin-bottom: 18px; }
+.stack, .form-stack { display: grid; gap: 15px; align-content: start; min-width: 0; }
+.stack > .page-heading { margin-bottom: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: clamp(15px, 3vw, 26px); min-width: 0; }
+.form-stack > .button, .stack > .button { justify-self: start; }
+.form-narrow { max-width: 650px; }
+.field { display: grid; gap: 6px; min-width: 0; align-content: start; }
+.field > label, .times legend { font-size: .88rem; font-weight: 700; color: #ede4d6; }
+.field input, .field select, .field textarea { width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px;
+  font-size: 1rem; border: 1px solid var(--line); border-radius: 7px; color: #f4efe6; background: var(--base); }
+.field select { appearance: auto; }
+.field input[type=color] { padding: 4px; }
+.field input[type=file] { font-size: .84rem; padding-inline: 7px; }
+.field input[type=date], .field input[type=datetime-local] { display: block; }
+.check-field { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: .93rem; }
+.check-field input { accent-color: var(--gold); width: 19px; height: 19px; flex: 0 0 auto; }
+.notice { background: #233526; border: 1px solid #49654d; color: #d4efdb; border-radius: 7px; padding: 11px 13px; }
+.notice--error { background: #392422; border-color: #79524b; color: #ffe0d9; }
+.empty { display: flex; align-items: center; gap: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 9px; padding: 19px; }
+.auth-wrap { display: grid; justify-items: center; padding-block: clamp(15px, 7vw, 68px); }
+.auth-card { width: min(100%, 480px); display: grid; gap: 13px; }
+.auth-card h1 { font-size: clamp(2.35rem, 8vw, 3.5rem); }
+.auth-link a, .list-copy a { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+.booking-grid { display: grid; gap: 15px; align-items: start; }
+.booking-summary, .booking-result { display: grid; gap: 14px; }
+.booking-result { max-width: 560px; }
+.booking-result .button { justify-self: start; }
+.summary-price { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); }
+.summary-price strong { color: var(--gold); }
+.times { border: 0; padding: 0; min-width: 0; }
+.times legend { margin-bottom: 10px; }
+.time-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 6px; }
+.time-slot { position: relative; }
+.time-slot input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; width: 100%; }
+.time-slot span { min-height: 44px; border: 1px solid var(--line); border-radius: 7px; display: grid; place-items: center; background: var(--base); }
+.time-slot input:checked + span { border-color: var(--gold); background: var(--gold); color: #17120c; font-weight: 700; }
+.time-slot input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 5px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); width: fit-content; padding: 4px; }
+.tabs button { min-height: 43px; border-radius: 6px; padding: 7px 12px; color: var(--muted); cursor: pointer; font-weight: 700; }
+.tabs button[aria-pressed=true] { background: var(--gold); color: #17120c; }
+.management-tabs { margin-bottom: 18px; }
+.agenda-results { margin-top: 15px; }
+.appointment { display: grid; gap: 12px; align-content: start; }
+.appointment-header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px; }
+.appointment-header .muted { display: inline-block; margin-top: 5px; }
+.appointment-meta { display: flex; gap: 8px 15px; flex-wrap: wrap; color: var(--muted); font-size: .9rem; }
+.appointment-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.status { padding: 4px 8px; border: 1px solid #6f5c41; color: #f0d5aa; background: #342a1e; border-radius: 6px; font-size: .75rem; font-weight: 700; }
+.status--confirmado, .status--concluido { border-color: #49654d; background: #26392a; color: #d2ebd2; }
+.status--cancelado, .status--faltou { border-color: #62413b; background: #382521; color: #f7cec4; }
+.subform { padding-top: 14px; border-top: 1px solid var(--line); }
+.loyalty-card { background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 17%, var(--base)), var(--surface) 64%); color: #f7f2e9;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line)); border-radius: 13px; padding: clamp(18px, 5vw, 36px); display: grid; gap: 13px; }
+.loyalty-card h2 { font-size: clamp(2.5rem, 9vw, 4.4rem); color: var(--gold); }
+.loyalty-card h2 span { color: #f7f2e9; }
+.loyalty-card progress { width: 100%; height: 13px; accent-color: var(--gold); }
+.stamp-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.stamp-grid span { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }
+.stamp-grid .stamped { background: var(--gold); color: #17120c; border-color: var(--gold); }
+.list-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-block: 11px; min-width: 0; }
+.list-row + .list-row { border-top: 1px solid var(--line); }
+.list-row p, .list-copy p { margin-top: 5px; }
+.list-copy { flex: 1 1 190px; min-width: 0; }
+.logo-preview { max-height: 190px; max-width: 100%; object-fit: contain; object-position: left; }
+@media (min-width: 760px) {
+  .shell { width: min(1152px, calc(100% - 64px)); }
+  .site-main { padding-block: 35px 60px; }
+  .hero { grid-template-columns: 1.07fr 1fr; }
+  .hero-copy { padding: clamp(32px, 4.5vw, 60px); }
+  .hero-media { border-left: 1px solid var(--line); }
+  .booking-grid { grid-template-columns: minmax(0, 1fr) minmax(280px, 35%); }
+}
+@media (min-width: 940px) {
+  .menu-toggle { display: none; }
+  .site-nav, .site-nav--open { position: static; display: flex; flex-direction: row; gap: 3px; align-items: center; box-shadow: none; padding: 0; border: 0; background: none; }
+  .admin-menu { position: relative; }
+  .admin-menu > div { position: absolute; right: 0; top: calc(100% + 3px); background: var(--surface); border: 1px solid var(--line); padding: 6px; border-radius: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  a, button { transition: none; }
+}
+
+/* V2: public storefront and touch-friendly reservation. */
+.app { --surface: color-mix(in srgb, var(--base) 93%, #9a8d80); --line: color-mix(in srgb, var(--base) 72%, #9a8d80); }
+.wordmark-icon { overflow: hidden; background: #0b0a09; }
+.wordmark-icon img { width: 100%; height: 100%; object-fit: cover; }
+.button { min-height: 46px; padding-inline: 15px; }
+.home { display: grid; gap: clamp(24px, 5vw, 60px); }
+.hero-v2 { position: relative; isolation: isolate; min-height: 400px; background: var(--base); border-radius: 18px; }
+.hero-v2--foto { display: grid; grid-template-columns: 1fr; align-items: end; }
+.hero-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 64% center; z-index: -2; }
+.hero-v2--foto::after { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(0deg, #100e0dfc, #100e0dd4 38%, #100e0d60 70%, #100e0d22); }
+.hero-v2 .hero-copy { padding: clamp(23px, 6vw, 76px); }
+.hero-v2 h1 { font-size: clamp(3.45rem, 11vw, 7.2rem); line-height: .88; }
+.hero-v2 p { color: #e0d8cd; max-width: 36ch; line-height: 1.6; }
+.demo-image-label { display: block; margin-top: 14px; color: #cfc0ae; font-size: .75rem; }
+.home-section { scroll-margin-top: 16px; min-width: 0; }
+.home-section h2 { font-size: clamp(2.1rem, 5vw, 3.3rem); }
+.editorial-card { display: flex; flex-direction: column; gap: 12px; border-radius: 14px; overflow: hidden; }
+.editorial-card h3 { font-size: 1.85rem; }
+.editorial-card .card-tail { margin-top: auto; }
+.card-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 7px; }
+.card-photo.portrait { aspect-ratio: 4/3; object-position: center 35%; }
+.gallery-grid, .contact-v2 { display: grid; gap: 12px; }
+.gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gallery-item { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.gallery-item img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+.gallery-item figcaption { padding: 10px; color: var(--muted); overflow-wrap: anywhere; }
+.hours-list { display: grid; gap: 0; }
+.hours-list div { display: flex; flex-wrap: wrap; gap: 5px 15px; justify-content: space-between; border-bottom: 1px solid var(--line); padding-block: 8px; }
+.hours-list dd { color: var(--muted); margin: 0; }
+.booking-v2 { max-width: 1000px; margin-inline: auto; }
+.booking-steps { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); padding: 9px 0 18px; gap: 2px; margin: 0; }
+.booking-steps li { display: grid; min-width: 0; position: relative; text-align: center; }
+.booking-steps li:not(:last-child)::after { content: ""; position: absolute; pointer-events: none; width: calc(100% - 37px); height: 1px; background: var(--line); top: 16px; left: calc(50% + 19px); }
+.booking-steps button { display: grid; gap: 6px; justify-items: center; min-height: 48px; color: var(--muted); cursor: pointer; }
+.booking-steps button:disabled { cursor: default; }
+.booking-steps button > span { display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; width: 33px; height: 33px; }
+.booking-steps button[aria-current] { color: var(--gold); }
+.booking-steps button[aria-current] > span, .booking-steps .step-done > span { background: var(--gold); border-color: var(--gold); color: #17120c; }
+.booking-steps small { font-size: clamp(.57rem, 2.5vw, .8rem); }
+.booking-stage { gap: 21px; }
+.booking-stage h2:focus { outline: none; }
+.booking-options { display: grid; gap: 8px; min-width: 0; }
+.booking-option { position: relative; display: block; }
+.booking-option input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.booking-option-card { display: flex; gap: 12px; align-items: center; min-height: 68px; padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--base); }
+.booking-option input:checked + span { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 11%, var(--base)); }
+.booking-option input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 3px; }
+.booking-option-card strong, .booking-option-card small { display: block; overflow-wrap: anywhere; }
+.booking-option-card small { color: var(--muted); margin-top: 3px; font-size: .79rem; }
+.booking-option-card img { width: 54px; height: 54px; flex: 0 0 auto; border-radius: 8px; object-fit: cover; }
+.booking-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.booking-controls .button:last-child { margin-left: auto; }
+.booking-summary { border-color: color-mix(in srgb, var(--line) 64%, var(--gold)); }
+.booking-result { margin-inline: auto; }
+.booking-result h1 { font-size: clamp(2.7rem, 8vw, 4.25rem); }
+.photo-preview { width: min(100%, 330px); max-height: 185px; object-fit: cover; border-radius: 10px; }
+.catalog-photo { flex: 1 0 100%; padding-block: 6px; min-width: 0; }
+.catalog-photo summary { min-height: 44px; padding-block: 9px; cursor: pointer; color: var(--gold); font-weight: 700; }
+.reward-ready { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, var(--surface)); }
+.agenda-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+.agenda-counts span { padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; }
+.agenda-counts strong { color: var(--gold); }
+@media (min-width: 760px) {
+  .hero-v2 { min-height: 525px; }
+  .hero-v2--foto::after { background: linear-gradient(90deg, #100e0df9, #100e0dd0 36%, #100e0d50 80%); }
+  .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .contact-v2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 5vw, 70px); }
+}
+.hero-brand { width: 60px; height: 60px; margin-bottom: 14px; object-fit: cover; border: 1px solid #b99a68; border-radius: 9px; }
+
+/* Studio V3: editorial photography and compact, touch-oriented controls. */
+.app {
+  --base: #0d0d0d; --gold: #e6c89b; --surface: color-mix(in srgb, var(--base) 95%, white);
+  --surface-raised: color-mix(in srgb, var(--base) 90%, white);
+  --line: color-mix(in srgb, var(--base) 83%, #d1c8b9); --muted: #c0b9b1;
+  --display: "DM Sans", sans-serif; --white: #f5f3ef; --ease-studio: cubic-bezier(.2,.7,.3,1);
+}
+h1, h2, h3 { line-height: 1.12; letter-spacing: -.045em; }
+h1 { font-size: clamp(1.95rem, 5.4vw, 3.4rem); }
+h2 { font-size: clamp(1.22rem, 3.8vw, 1.84rem); }
+h3 { font-size: 1.12rem; }
+.site-header-inner { min-height: 65px; }
+.wordmark { font-size: 1rem; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.wordmark-icon { width: 49px; height: 38px; border: 0; border-radius: 7px; }
+.wordmark-icon img, .hero-brand { object-fit: contain; }
+.site-main { padding-top: 20px; }
+.panel { border-radius: 17px; }
+.button { border-radius: 999px; min-height: 46px; transition: transform 150ms var(--ease-studio), color 150ms, background 150ms, border-color 150ms; }
+.button:active:not(:disabled), .icon-btn:active:not(:disabled) { transform: scale(.975); }
+.button--primario { color: #14100b; background: var(--gold); }
+.icon-btn { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; border-radius: 50%;
+  background: var(--surface-raised); color: var(--white); border: 1px solid var(--line); cursor: pointer; flex: 0 0 auto; }
+.icon-btn:hover { color: var(--gold); }
+.icon-btn:disabled { opacity: .45; cursor: default; }
+.studio-text-link { display: inline-flex; gap: 7px; align-items: center; min-height: 44px; width: fit-content; color: var(--gold);
+  font-size: .84rem; font-weight: 700; cursor: pointer; }
+.studio-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.studio-page { max-width: 1080px; margin-inline: auto; }
+.studio-home { display: grid; min-width: 0; gap: clamp(21px, 4vw, 36px); }
+.studio-home .section-heading, .studio-page .section-heading { margin-bottom: 0; }
+.home-welcome { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-welcome .eyebrow { letter-spacing: .09em; margin-bottom: 6px; }
+.studio-search { display: flex; gap: 10px; align-items: center; background: var(--surface-raised); border: 1px solid var(--line);
+  border-radius: 999px; color: var(--muted); min-height: 47px; padding: 0 14px; width: min(100%, 600px); }
+.studio-search svg { flex: 0 0 auto; }
+.studio-search input { flex: 1; min-width: 0; padding: 9px 0; background: transparent; color: var(--white); border-radius: 7px; }
+.studio-search input:focus { outline: 0; }
+.studio-search:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+.editorial-photo { display: grid; place-items: center; background: linear-gradient(135deg, var(--surface-raised), var(--surface)); color: var(--gold);
+  min-width: 0; min-height: 0; overflow: hidden; }
+.editorial-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 300ms var(--ease-studio); }
+.editorial-photo > span { align-self: center; }
+.studio-abertura, .studio-banner { isolation: isolate; position: relative; overflow: hidden; border-radius: 22px; background: var(--surface); }
+.studio-abertura { min-height: min(650px, 75svh); min-height: max(430px, min(670px, 74svh)); display: grid;
+  grid-template-rows: auto 1fr; align-items: start; }
+.abertura-fundo, .studio-banner > .editorial-photo { position: absolute; inset: 0; z-index: -2; }
+.abertura-fundo img { object-position: center 42%; animation: studio-foto 520ms var(--ease-studio) both; }
+.studio-abertura::after, .studio-banner::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.studio-abertura::after { background: linear-gradient(0deg, #0d0c0bf9, #0d0c0be5 25%, #0d0c0b24 65%, #0d0c0b8c); }
+.abertura-marca { justify-self: start; margin: clamp(14px, 4vw, 37px); display: grid; align-content: start; }
+.abertura-marca img { width: clamp(105px, 27vw, 200px); height: clamp(62px, 17vw, 105px); object-fit: contain; object-position: left; }
+.abertura-copy { align-self: end; display: grid; gap: 13px; padding: clamp(19px, 5.6vw, 62px); animation: studio-in 350ms var(--ease-studio) both; }
+.abertura-copy h1 { font-size: clamp(2.18rem, 8.8vw, 5.4rem); line-height: 1.01; }
+.abertura-copy em { color: var(--gold); font-style: normal; }
+.abertura-copy p { color: #ede6db; max-width: 44ch; }
+.abertura-copy small, .studio-banner small { font-size: .7rem; color: #ded4c6; }
+.abertura-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 13px; }
+.abertura-acoes .button { min-width: min(100%, 190px); }
+.studio-banner { min-height: clamp(155px, 32vw, 340px); align-content: center; display: grid; }
+.studio-banner::after { background: linear-gradient(90deg, #0d0c0bfa, #0d0c0bc0 39%, #0d0c0b38 78%); }
+.studio-banner > div:last-child { padding: clamp(15px, 4vw, 56px); display: grid; gap: 10px; justify-items: start; }
+.studio-banner h2 { font-size: clamp(1.43rem, 4.8vw, 3.3rem); }
+.studio-banner img { object-position: center 50%; animation: studio-foto 520ms var(--ease-studio) both; }
+.vitrine { min-width: 0; }
+.vitrine-track { display: grid; grid-auto-flow: column; grid-auto-columns: clamp(185px, 69vw, 275px); gap: 12px;
+  overflow-x: auto; padding: 4px 2px 9px; scroll-padding-inline: 2px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--line) var(--base); }
+.vitrine-track > * { scroll-snap-align: start; }
+.vitrine-controls { display: flex; justify-content: end; align-items: center; gap: 5px; margin-top: 3px; }
+.vitrine-controls > span { width: 50px; height: 3px; margin-right: 6px; border-radius: 4px; background: var(--surface-raised); }
+.vitrine-controls i { display: block; width: 32%; height: 100%; background: var(--gold); border-radius: 4px; }
+.service-categories { display: flex; gap: 7px; flex-wrap: wrap; }
+.service-categories button { display: inline-flex; gap: 7px; align-items: center; min-height: 45px; border-radius: 12px; background: var(--surface-raised); padding: 6px 9px; color: var(--muted); cursor: pointer; font-size: .76rem; }
+.service-categories button svg { color: var(--gold); }
+.service-categories button[aria-pressed=true] { background: color-mix(in srgb, var(--gold) 18%, var(--surface)); color: var(--white); }
+.demo-caption { font-size: .77rem; color: var(--muted); }
+.studio-card { display: grid; min-width: 0; border-radius: 16px; overflow: hidden; background: var(--surface);
+  border: 1px solid var(--line); transition: transform 180ms var(--ease-studio), border-color 170ms; }
+.studio-card > .editorial-photo { aspect-ratio: 1.65; }
+.studio-card--pessoa > .editorial-photo { aspect-ratio: 1.33; }
+.studio-card--pessoa img, .perfil-foto img { object-position: center 24%; }
+.studio-card--galeria > span { padding: 10px 12px; }
+.studio-card:active { transform: scale(.988); }
+.studio-card-copy { display: grid; align-content: start; gap: 6px; padding: 12px; min-width: 0; }
+.studio-card-copy p { font-size: .82rem; line-height: 1.35; }
+.studio-card-copy .muted { font-size: .82rem; }
+.studio-card-tail { display: flex; gap: 7px; align-items: center; justify-content: space-between; }
+.studio-card-tail strong { color: var(--gold); }
+.round-arrow { display: inline-grid; place-items: center; width: 31px; height: 31px; flex: 0 0 auto; background: var(--gold); color: #17120c; border-radius: 50%; }
+.catalog-v3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 315px), 1fr)); gap: 10px; }
+.catalog-v3 .studio-card--servico { grid-template-columns: minmax(78px, 35%) minmax(0, 1fr); }
+.catalog-v3 .studio-card--servico > .editorial-photo { aspect-ratio: auto; min-height: 125px; }
+.perfil-publico { max-width: 700px; }
+.perfil-foto { height: clamp(200px, 44vw, 395px); border-radius: 20px; }
+.studio-inline-card { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; }
+.studio-inline-card > span:nth-child(2) { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.studio-inline-card small { line-height: 1.3; }
+.slot-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.studio-info summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; font-weight: 700; }
+.studio-info .contact-v2 { margin-top: 16px; }
+.studio-dialog { margin: auto auto 0; width: min(100%, 615px); max-height: 88svh; background: var(--surface); color: var(--white);
+  border: 1px solid var(--line); border-radius: 21px 21px 0 0; overflow-y: auto; }
+.studio-dialog[open] { animation: studio-in 240ms var(--ease-studio) both; }
+.studio-dialog::backdrop { background: #000a; }
+.studio-dialog-content { padding: 16px 16px max(16px,env(safe-area-inset-bottom)); display: grid; gap: 10px; }
+.gallery-item { text-align: left; cursor: zoom-in; }
+.gallery-item .editorial-photo { aspect-ratio: 4/5; }
+.gallery-item > span { display: block; padding: 9px; font-size: .83rem; }
+.gallery-zoom .editorial-photo { height: min(49vh, 420px); }
+.gallery-zoom img { object-fit: contain; }
+.week-picker { display: grid; gap: 9px; margin-block: 4px; }
+.week-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.week-top strong { text-transform: capitalize; font-size: .88rem; }
+.week-days { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; animation: studio-in 180ms var(--ease-studio) both; }
+.week-days button { display: grid; place-items: center; align-content: center; gap: 4px; border-radius: 999px; min-height: 54px;
+  background: var(--surface-raised); border: 1px solid var(--line); cursor: pointer; font-size: .86rem; }
+.week-days button small { font-size: .66rem; text-transform: capitalize; }
+.week-days button[aria-pressed=true] { background: var(--gold); color: #17120c; border-color: var(--gold); }
+.week-days button:disabled { opacity: .38; }
+.studio-booking .booking-steps { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.booking-option-card { display: grid; grid-template-columns: 60px minmax(0,1fr) auto; padding: 8px; gap: 10px; }
+.booking-option-card .editorial-photo, .booking-option-card .large-icon { width: 60px; height: 57px; border-radius: 9px; }
+.booking-option-card .editorial-photo img { width: 100%; height: 100%; }
+.selection-mark { pointer-events: none; }
+.booking-person { display: flex; gap: 12px; align-items: center; }
+.booking-person .editorial-photo { width: 66px; height: 66px; border-radius: 11px; flex: 0 0 auto; }
+.booking-person small { display: block; color: var(--muted); }
+.time-slot span { border-radius: 999px; }
+.studio-booking .booking-stage { animation: studio-stage 240ms var(--ease-studio) both; --direcao: 10px; }
+.studio-booking .booking-stage[data-sentido=volta] { --direcao: -10px; }
+.booking-result { text-align: center; justify-items: center; margin-block: 15px; }
+.booking-result .button { justify-self: center; }
+.reservation-ticket { width: 100%; display: grid; gap: 6px; background: var(--surface-raised); padding: 16px;
+  border-radius: 14px; color: var(--muted); }
+.reservation-ticket strong { color: var(--white); }
+.confirmation-mark { animation: studio-confirm 450ms var(--ease-studio) both; }
+.route-view { animation: studio-in 280ms var(--ease-studio) backwards; }
+.bottom-nav { display: none; }
+@media (min-width:760px) {
+  .studio-abertura::after { background: linear-gradient(90deg,#0d0c0bf8,#0d0c0bbd 41%,#0d0c0b18 86%),linear-gradient(0deg,#0d0c0ba8,transparent 48%); }
+  .abertura-fundo img { object-position: center 46%; }
+  .studio-dialog { margin: auto; border-radius: 21px; }
+}
+@media (max-width:759px) {
+  .app:has(.bottom-nav) { padding-bottom: calc(67px + env(safe-area-inset-bottom)); }
+  .bottom-nav { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); position: fixed; z-index: 12; left: 0; right: 0; bottom: 0;
+    min-height: 63px; padding: 4px max(5px,env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));
+    background: color-mix(in srgb, var(--base) 93%, black); border-top: 1px solid var(--line); }
+  .bottom-nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 49px; color: var(--muted); border-radius: 12px; }
+  .bottom-nav a > span { width: 40px; height: 26px; display: grid; place-items: center; border-radius: 999px; transition: background 180ms, transform 160ms; }
+  .bottom-nav a:active > span { transform: scale(.9); }
+  .bottom-nav .active { color: var(--gold); font-weight: 700; }
+  .bottom-nav .active > span { background: color-mix(in srgb, var(--gold) 19%, var(--base)); }
+  .bottom-nav small { font-size: clamp(.59rem,2.1vw,.72rem); }
+  .app:has(input[type=search]:focus, input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, input:not([type]):focus, textarea:focus) .bottom-nav { visibility: hidden; }
+  .shell { width: calc(100% - 26px); }
+  .site-main { padding-bottom: 25px; }
+  .studio-abertura .button { width: 100%; }
+  .abertura-acoes { display: grid; }
+  .booking-grid .booking-summary { grid-row: auto; }
+}
+@media (hover:hover) and (pointer:fine) {
+  .studio-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb,var(--gold) 55%,var(--line)); }
+  .studio-card:hover img, .gallery-item:hover img { transform: scale(1.04); }
+}
+@keyframes studio-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes studio-stage { from { opacity: 0; transform: translateX(var(--direcao)); } to { opacity: 1; transform: translateX(0); } }
+@keyframes studio-foto { from { transform: scale(1.025); } to { transform: scale(1); } }
+@keyframes studio-confirm { from { opacity: 0; transform: scale(.84); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+.auth-logo { width: 108px; height: 60px; object-fit: contain; object-position: left; border-radius: 7px; }
+.brand-preview .auth-logo { animation: none; object-fit: contain; }
+.brand-preview { min-height: 150px; }
+.studio-admin-rail { display: none; }
+.dashboard-metricas { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,132px),1fr)); gap: 8px; }
+.dashboard-metricas article { display: grid; gap: 6px; padding: 12px; }
+.dashboard-metricas article strong { font-size: 1.65rem; line-height: 1; }
+.dashboard-metricas article span { font-size: .78rem; }
+.dashboard-linha { padding: 10px; background: var(--surface-raised); border-radius: 9px; display: grid; gap: 8px;
+  grid-template-columns: auto minmax(0,1fr) auto; align-items: center; font-size: .86rem; }
+.dashboard-linha small { display: block; color: var(--muted); }
+.dashboard-atalhos { display: flex; flex-wrap: wrap; gap: 9px; }
+@media (min-width: 1010px) {
+  .studio-admin-layout { width: min(1380px,calc(100% - 64px)); display: grid; grid-template-columns: 195px minmax(0,1fr); align-items: start; gap: 24px; }
+  .studio-admin-rail { display: block; position: sticky; top: 12px; border-radius: 17px; background: var(--surface);
+    border: 1px solid var(--line); padding: 8px; }
+  .studio-admin-rail nav { display: grid; }
+  .studio-admin-rail a { display: flex; gap: 8px; align-items: center; padding: 8px; min-height: 44px; color: var(--muted);
+    border-radius: 9px; font-size: .86rem; }
+  .studio-admin-rail a.active, .studio-admin-rail a:hover { background: color-mix(in srgb,var(--gold) 13%,var(--surface)); color: var(--gold); }
+}
+.studio-account, .studio-loyalty { max-width: 650px; margin-inline: auto; }
+.ajustes-conta form { border: 0; padding: 8px 0 0; }
+.member-pass { display: grid; min-height: clamp(150px,38vw,240px); place-content: center; justify-items: center; gap: 7px; border-radius: 21px;
+  background: radial-gradient(ellipse at top right, color-mix(in srgb,var(--gold) 15%,#161412),transparent 57%),#121110;
+  border: 1px solid color-mix(in srgb,var(--gold) 56%,#171512); color: var(--gold); }
+.member-pass img { width: clamp(110px,44vw,255px); height: clamp(76px,23vw,125px); object-fit: contain; }
+.member-pass small { font-size: .72rem; letter-spacing: .11em; text-transform: uppercase; }
+.loyalty-card .section-heading { margin: 0; }
+.loyalty-card { background: var(--surface); }
+.loyalty-card h2 { font-size: clamp(2.2rem,7vw,3rem); }
+.loyalty-card h2 span { font-size: .67em; }
+.loyalty-card progress { transform-origin: left; animation: studio-meter 520ms var(--ease-studio) both; }
+.stamp-grid .stamped, .reward-ready { animation: studio-in 350ms var(--ease-studio) both; }
+.proximo-premio { display: flex; gap: 13px; align-items: center; background: var(--gold); color: #191108; border-radius: 16px; padding: 13px 16px; }
+.proximo-premio small { display: block; }
+.studio-loading { display: grid; gap: 6px; color: var(--muted); font-size: .84rem; }
+.studio-loading i { display: block; height: 7px; width: min(100%,170px); border-radius: 5px; background: var(--surface-raised); }
+.studio-loading i + i { width: min(100%,115px); }
+.studio-success { display: flex; align-items: center; gap: 8px; animation: studio-in 220ms var(--ease-studio) both; }
+@keyframes studio-meter { from { transform: scaleX(.3); opacity: .45; } to { transform: scaleX(1); opacity: 1; } }
+.periodos-horario { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.periodos-horario button { min-height: 44px; border-radius: 999px; padding: 5px 12px; background: var(--surface-raised); color: var(--muted); cursor: pointer; }
+.periodos-horario button[aria-pressed=true] { background: color-mix(in srgb,var(--gold) 19%,var(--surface)); color: var(--gold); }
+.studio-picked-time { min-width: 0; align-self: center; color: var(--gold); font-size: .75rem; }
+.loyalty-card progress { appearance: none; background: var(--surface-raised); border: none; border-radius: 999px; overflow: hidden; }
+.loyalty-card progress::-webkit-progress-bar { background: var(--surface-raised); border-radius: 999px; }
+.loyalty-card progress::-webkit-progress-value { background: var(--gold); border-radius: 999px; }
+.loyalty-card progress::-moz-progress-bar { background: var(--gold); border-radius: 999px; }
+.studio-toast { position: fixed; z-index: 25; right: 15px; top: 15px; width: max-content; max-width: calc(100% - 30px); box-shadow: 0 9px 28px #0007; }
+.studio-toast > svg { flex-shrink: 0; }
+.studio-toast .icon-btn { min-width: 44px; min-height: 44px; margin: -7px -8px -7px 2px; background: transparent; border: 0; }
+@media (max-width: 759px) {
+  .studio-booking .page-heading { margin-bottom: 8px; }
+  .studio-booking .booking-steps { padding-bottom: 12px; }
+  .studio-booking .booking-stage[data-etapa="2"] { gap: 12px; }
+  .studio-booking .week-days button { min-height: 48px; }
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\main.tsx =====
+// src/main.tsx
+import "./index.css";
+import "./recuperacao.css";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\recuperacao.css =====
+/* Ajustes compatÃ­veis com a estrutura React recuperada. */
+.wordmark-icon { width: 88px; height: 48px; background: transparent; border: 0; flex-shrink: 0; }
+.wordmark-icon img { width: 100%; height: 100%; object-fit: contain; }
+.abertura-marca img { max-width: min(65vw, 230px); object-fit: contain; }
+.studio-banner, .studio-card { box-shadow: none; }
+.studio-card--servico { border-radius: 16px; overflow: hidden; }
+.studio-card--servico .editorial-photo img { object-fit: cover; }
+@media (max-width: 759px) {
+  .wordmark-icon { width: 78px; height: 42px; }
+  .wordmark { gap: 8px; }
+  .wordmark:has(img) > span:last-child { font-size: .78rem; }
+  .studio-banner { min-height: 185px; border-radius: 18px; }
+  .studio-card--servico .studio-card-copy { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\AgendamentoCard.tsx =====
+import { useState } from "react";
+import { useAgora } from "../services/useAgora";
+import { CalendarDays, Clock3, Gift, UserRound } from "lucide-react";
+import type { Agendamento, Barbeiro, Status } from "../types/Barbearia";
+import { data, hoje, hora, instanteAgenda, mensagem, moeda, statusTexto } from "../services/formato";
+import api from "../services/api";
+import Botao from "./Botao";
+import { Aviso } from "./Interface";
+import { PainelModal } from "./Experiencia";
+import EscolherHorario from "./EscolherHorario";
+
+export default function AgendamentoCard({ a, equipe, podeTrocarProfissional, barbeiros, recarregar }: {
+  a: Agendamento; equipe: boolean; podeTrocarProfissional: boolean; barbeiros: Barbeiro[]; recarregar: (msg: string) => void;
+}) {
+  const agora = useAgora();
+  const [reagendando, editar] = useState(false);
+  const [barbeiro, setBarbeiro] = useState(String(a.barbeiroId));
+  const [dia, setDia] = useState(a.inicio.slice(0, 10) >= hoje() ? a.inicio.slice(0, 10) : hoje());
+  const [horario, setHorario] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState("");
+  const [confirmar, setConfirmar] = useState<"CANCELADO" | "FALTOU">();
+  const [versao, setVersao] = useState(0);
+
+  async function executar(tipo: Status | "REAGENDAR") {
+    if (ocupado) return;
+    setConfirmar(undefined);
+    setOcupado(true); setErro("");
+    try {
+      const url = `/agendamentos/${a.id}`;
+      if (tipo === "REAGENDAR") await api.put(url, { barbeiroId: Number(barbeiro), inicio: horario });
+      else if (tipo === "CANCELADO") await api.delete(url);
+      else await api.put(url + "/status", { status: tipo });
+      editar(false);
+      recarregar(tipo === "REAGENDAR" ? "Atendimento reagendado." : `Atendimento atualizado. ${statusTexto[tipo]}.`);
+    } catch (e) {
+      setErro(mensagem(e));
+      if (tipo === "REAGENDAR") { setHorario(""); setVersao(v => v + 1); }
+    } finally { setOcupado(false); }
+  }
+
+  const lista = podeTrocarProfissional ? barbeiros : barbeiros.filter(b => b.id === a.barbeiroId);
+  const url = dia && barbeiro ? `/agendamentos/${a.id}/horarios?${new URLSearchParams({ data: dia, barbeiroId: barbeiro, v: String(versao) })}` : null;
+  return <article className="panel appointment">
+    <div className="appointment-header">
+      <div><h3>{a.servico}</h3><span className="muted">{equipe ? a.cliente : a.barbeiro}</span></div>
+      <span className={`status status--${a.status.toLowerCase()}`}>{statusTexto[a.status]}</span>
+    </div>
+    <div className="appointment-meta">
+      <span><CalendarDays size={17} />{data(a.inicio)}</span>
+      <span><Clock3 size={17} />{hora(a.inicio)} â€“ {hora(a.fim)}</span>
+      {equipe && <span><UserRound size={17} />{a.barbeiro}</span>}
+    </div>
+    <p className="inline-icon">{a.beneficio ? <><Gift size={17} /> BenefÃ­cio de fidelidade</> : moeda(a.preco)}</p>
+    <Aviso erro={erro} />
+    {a.podeAlterar && <div className="flex flex-wrap gap-2">
+      {equipe && a.status === "RESERVADO" && <Botao disabled={ocupado} onClick={() => void executar("CONFIRMADO")}>Confirmar</Botao>}
+      {equipe && a.status === "CONFIRMADO" && instanteAgenda(a.fim) <= agora &&
+        <Botao disabled={ocupado} onClick={() => void executar("CONCLUIDO")}>Concluir atendimento</Botao>}
+      <Botao variante="neutro" disabled={ocupado} onClick={() => editar(!reagendando)}>{reagendando ? "Fechar reagendamento" : "Reagendar"}</Botao>
+      <Botao variante="perigo" disabled={ocupado} onClick={() => setConfirmar("CANCELADO")}>Cancelar</Botao>
+      {equipe && instanteAgenda(a.inicio) <= agora && <Botao variante="neutro" disabled={ocupado}
+        onClick={() => setConfirmar("FALTOU")}>Registrar falta</Botao>}
+    </div>}
+    {confirmar && <PainelModal titulo={confirmar === "CANCELADO" ? "Cancelar atendimento?" : "Registrar falta?"} fechar={() => setConfirmar(undefined)}>
+      <p>{a.servico} Â· {data(a.inicio)} Ã s {hora(a.inicio)}</p>
+      <div className="flex flex-wrap gap-2"><Botao variante="neutro" onClick={() => setConfirmar(undefined)}>Voltar</Botao>
+        <Botao variante="perigo" onClick={() => void executar(confirmar)}>{confirmar === "CANCELADO" ? "Sim, cancelar" : "Confirmar falta"}</Botao></div>
+    </PainelModal>}
+    {reagendando && <form className="form-stack subform" onSubmit={e => { e.preventDefault(); void executar("REAGENDAR"); }}>
+      <EscolherHorario barbeiros={lista} barbeiro={barbeiro} setBarbeiro={setBarbeiro} dia={dia} setDia={setDia}
+        horario={horario} setHorario={setHorario} url={url} />
+      <Botao type="submit" disabled={!horario || ocupado}>Salvar novo horÃ¡rio</Botao>
+    </form>}
+  </article>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\Botao.tsx =====
+import type { ButtonHTMLAttributes } from "react";
+
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variante?: "primario" | "neutro" | "perigo" };
+export default function Botao({ variante = "primario", className = "", type = "button", ...props }: Props) {
+  return <button type={type} className={`button button--${variante} ${className}`} {...props} />;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\CadastroCrud.tsx =====
+import { useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import api from "../services/api";
+import { mensagem } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import { Aviso, Campo, Titulo, Vazio } from "./Interface";
+import Botao from "./Botao";
+
+type Registro = { id: number };
+type Valores = Record<string, string | boolean>;
+export type DefCampo = {
+  chave: string; nome: string; tipo?: "text" | "number" | "email" | "password" | "date" | "time" | "datetime-local" | "checkbox" | "select";
+  obrigatorio?: boolean; min?: number; max?: number; passo?: string; opcoes?: { valor: string; nome: string }[]; opcaoVazia?: string;
+  somenteLeitura?: boolean; tamanho?: number; minimo?: number;
+};
+type Props<T extends Registro> = {
+  titulo: string; descricao?: string; url: string; nomeNovo: string; campos: DefCampo[]; padrao: Valores;
+  editar: (item: T) => Valores; enviar: (valores: Valores) => unknown; exibir: (item: T) => ReactNode;
+  remover?: string; podeRemover?: (item: T) => boolean; extras?: (item: T, atualizar: (msg: string) => void) => ReactNode;
+  aviso?: string; detalhes?: (item: T) => ReactNode;
+};
+
+function FormCadastro({ campos, padrao, itemId, onSalvar, onFechar, nomeNovo }: {
+  campos: DefCampo[]; padrao: Valores; itemId?: number; nomeNovo: string;
+  onSalvar: (dados: Valores) => Promise<void>; onFechar: () => void;
+}) {
+  const [valores, setValores] = useState(padrao);
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  function alterar(chave: string, valor: string | boolean) {
+    setValores(v => ({ ...v, [chave]: valor }));
+  }
+  async function enviar(e: FormEvent) {
+    e.preventDefault(); setOcupado(true); setErro("");
+    try { await onSalvar(valores); }
+    catch (e) { setErro(mensagem(e)); }
+    finally { setOcupado(false); }
+  }
+  return <form className="panel form-stack" onSubmit={enviar}>
+    <h2>{itemId ? "Editar cadastro" : nomeNovo}</h2><Aviso erro={erro} />
+    <div className="grid gap-4 sm:grid-cols-2">
+      {campos.map(c => c.tipo === "checkbox" ? <label className="check-field" key={c.chave}>
+        <input type="checkbox" checked={Boolean(valores[c.chave])} onChange={e => alterar(c.chave, e.target.checked)} /> {c.nome}
+      </label> : <Campo key={c.chave} nome={c.nome}>
+        {c.tipo === "select" ? <select value={String(valores[c.chave] ?? "")} required={c.obrigatorio}
+          onChange={e => alterar(c.chave, e.target.value)}>
+          <option value="">{c.opcaoVazia ?? "Selecione"}</option>
+          {c.opcoes?.map(o => <option key={o.valor} value={o.valor}>{o.nome}</option>)}
+        </select> : <input type={c.tipo ?? "text"} value={String(valores[c.chave] ?? "")}
+          onChange={e => alterar(c.chave, e.target.value)} required={c.obrigatorio}
+          min={c.min} max={c.max} step={c.passo} readOnly={c.somenteLeitura}
+          maxLength={c.tamanho} minLength={c.minimo} autoComplete={c.tipo === "password" ? "new-password" : undefined} />}
+      </Campo>)}
+    </div>
+    <div className="flex flex-wrap gap-2"><Botao type="submit" disabled={ocupado}>{ocupado ? "Salvandoâ€¦" : "Salvar"}</Botao>
+      <Botao variante="neutro" onClick={onFechar} disabled={ocupado}>Fechar</Botao></div>
+  </form>;
+}
+
+export default function CadastroCrud<T extends Registro>(props: Props<T>) {
+  const consulta = useConsulta<T[]>(props.url);
+  const [busca, setBusca] = useState("");
+  const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  const temBusca = consulta.dados?.some(item => "nome" in item);
+  const lista = consulta.dados?.filter(item => !busca.trim() || Object.entries(item)
+    .some(([chave, valor]) => ["nome", "descricao", "username", "email"].includes(chave) && typeof valor === "string"
+      && normalizar(valor).includes(normalizar(busca.trim()))));
+  const [item, setItem] = useState<T | null>();
+  const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
+  const [removendo, setRemovendo] = useState<number>();
+  function atualizar(msg: string) { consulta.recarregar(); setFeedback({ sucesso: msg }); }
+
+  async function salvar(dados: Valores) {
+    if (item) await api.put(`${props.url}/${item.id}`, props.enviar(dados));
+    else await api.post(props.url, props.enviar(dados));
+    setItem(undefined);
+    atualizar("Cadastro salvo.");
+  }
+
+  async function excluir(registro: T) {
+    if (!window.confirm(`${props.remover ?? "Excluir"} este cadastro?`)) return;
+    setRemovendo(registro.id);
+    try { await api.delete(`${props.url}/${registro.id}`); atualizar("Cadastro atualizado."); }
+    catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setRemovendo(undefined); }
+  }
+
+  return <section className="stack">
+    <Titulo titulo={props.titulo} detalhe={props.descricao}
+      acao={<Botao onClick={() => { setItem(null); setFeedback({}); }}><Plus size={18} /> {props.nomeNovo}</Botao>} />
+    <Aviso erro={props.aviso || consulta.erro} carregando={consulta.carregando} /><Aviso {...feedback} />
+    {item !== undefined && <FormCadastro key={item?.id ?? "novo"} campos={props.campos} padrao={item ? props.editar(item) : props.padrao}
+      itemId={item?.id} onFechar={() => setItem(undefined)} nomeNovo={props.nomeNovo} onSalvar={salvar} />}
+    {temBusca && <label className="studio-search"><Search size={18} /><input type="search" aria-label="Buscar cadastros"
+      placeholder="Buscar cadastros" value={busca} onChange={e => setBusca(e.target.value)} /></label>}
+    {Boolean(consulta.dados?.length) && lista?.length === 0 && <Vazio texto="Nenhum cadastro corresponde Ã  busca." />}
+    {consulta.dados?.length === 0 && <Vazio texto="Nenhum cadastro nesta lista." />}
+    {Boolean(lista?.length) && <div className="panel crud-list">{lista?.map(r => <article key={r.id} className="list-row">
+      <div className="list-copy">{props.exibir(r)}</div>
+      <div className="flex flex-wrap gap-2">{props.extras?.(r, atualizar)}
+        <Botao variante="neutro" onClick={() => { setItem(r); setFeedback({}); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+          <Pencil size={15} /> Editar</Botao>
+        {(!props.podeRemover || props.podeRemover(r)) && <Botao variante="perigo" disabled={removendo === r.id} onClick={() => void excluir(r)}>
+          <Trash2 size={15} /> {props.remover ?? "Excluir"}</Botao>}
+      </div>
+      {props.detalhes?.(r)}
+    </article>)}</div>}
+  </section>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\EscolherHorario.tsx =====
+import type { Barbeiro } from "../types/Barbearia";
+import { Aviso, Campo } from "./Interface";
+import { hoje, hora } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+
+export default function EscolherHorario({ barbeiros, barbeiro, setBarbeiro, dia, setDia, horario, setHorario, url }: {
+  barbeiros: Barbeiro[]; barbeiro: string; setBarbeiro: (s: string) => void; dia: string; setDia: (s: string) => void;
+  horario: string; setHorario: (s: string) => void; url: string | null;
+}) {
+  return <>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Campo nome="Profissional"><select required value={barbeiro} onChange={e => { setBarbeiro(e.target.value); setHorario(""); }}>
+        <option value="">Escolha o profissional</option>
+        {barbeiros.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+      </select></Campo>
+      <Campo nome="Data"><input type="date" required min={hoje()} value={dia}
+        onChange={e => { setDia(e.target.value); setHorario(""); }} /></Campo>
+    </div>
+    <HorariosDisponiveis url={url} horario={horario} setHorario={setHorario} />
+  </>;
+}
+
+export function HorariosDisponiveis({ url, horario, setHorario }: {
+  url: string | null; horario: string; setHorario: (s: string) => void;
+}) {
+  const lista = useConsulta<string[]>(url);
+  if (!url) return null;
+  return <fieldset className="times">
+      <legend>HorÃ¡rios disponÃ­veis</legend>
+      <Aviso erro={lista.erro} carregando={lista.carregando} />
+      {lista.dados?.length === 0 && <p className="muted">Sem horÃ¡rios nessa data. Escolha outro dia ou profissional.</p>}
+      <div className="time-grid">{lista.dados?.map(h => <label key={h} className="time-slot">
+        <input type="radio" name="horario" value={h} checked={horario === h} onChange={() => setHorario(h)} /><span>{hora(h)}</span>
+      </label>)}</div>
+    </fieldset>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\Experiencia.tsx =====
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
+
+export function FotoEditorial({ src, alt = "", className = "", prioridade = false }: {
+  src?: string | null; alt?: string; className?: string; prioridade?: boolean;
+}) {
+  const [falhou, setFalhou] = useState<string>();
+  return <div className={`editorial-photo ${className}`}>
+    {src && src !== falhou
+      ? <img src={src} alt={alt} loading={prioridade ? "eager" : "lazy"} decoding="async" onError={() => setFalhou(src)} />
+      : <span aria-hidden="true"><ImageOff size={23} strokeWidth={1.3} /></span>}
+  </div>;
+}
+
+export function Vitrine({ titulo, children }: { titulo: string; children: ReactNode }) {
+  const lista = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(0);
+  function mover(delta: number) {
+    if (lista.current) lista.current.scrollBy({ left: lista.current.clientWidth * delta * .78 });
+  }
+  return <div className="vitrine">
+    <div className="vitrine-track" ref={lista} tabIndex={0} role="region" aria-label={titulo}
+      onScroll={e => {
+        const t = e.currentTarget;
+        setPos(t.scrollLeft / Math.max(1, t.scrollWidth - t.clientWidth));
+      }}
+      onKeyDown={e => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault(); mover(e.key === "ArrowLeft" ? -1 : 1);
+        }
+      }}>{children}</div>
+    <div className="vitrine-controls">
+      <span aria-hidden="true"><i style={{ transform: `translateX(${pos * 200}%)` }} /></span>
+      <button type="button" className="icon-btn" onClick={() => mover(-1)} aria-label={`Voltar em ${titulo}`}><ChevronLeft size={18} /></button>
+      <button type="button" className="icon-btn" onClick={() => mover(1)} aria-label={`AvanÃ§ar em ${titulo}`}><ChevronRight size={18} /></button>
+    </div>
+  </div>;
+}
+
+export function PainelModal({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { ref.current?.showModal(); }, []);
+  return <dialog className="studio-dialog" aria-label={titulo} ref={ref} onCancel={fechar}
+    onClick={e => { if (e.target === e.currentTarget) fechar(); }}>
+    <div className="studio-dialog-content">
+      <div className="section-heading"><h2>{titulo}</h2><button type="button" className="icon-btn" onClick={fechar} aria-label="Fechar"><X size={20} /></button></div>
+      {children}
+    </div>
+  </dialog>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\FotosAdmin.tsx =====
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus } from "lucide-react";
+import type { AlvoFoto, Foto } from "../types/Barbearia";
+import api from "../services/api";
+import { mensagem } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import Botao from "./Botao";
+import { Aviso, Campo } from "./Interface";
+
+export default function FotosAdmin({ alvo, cadastroId, alterou }: { alvo: AlvoFoto; cadastroId?: number; alterou?: () => void }) {
+  const fotos = useConsulta<Foto[]>("/publico/fotos");
+  const [arquivo, setArquivo] = useState<File>();
+  const [preview, setPreview] = useState("");
+  const [categoria, setCategoria] = useState("Outros");
+  const [legenda, setLegenda] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
+  const input = useRef<HTMLInputElement>(null);
+  const atuais = fotos.dados?.filter(f => f.alvo === alvo && f.cadastroId === (cadastroId ?? null)) ?? [];
+
+  useEffect(() => {
+    if (!arquivo) return;
+    const url = URL.createObjectURL(arquivo);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [arquivo]);
+
+  async function gravar(remover?: Foto) {
+    if (!remover && !arquivo) return;
+    if (remover && !window.confirm("Remover esta foto?")) return;
+    setOcupado(true);
+    setFeedback({});
+    try {
+      if (remover) await api.delete("/fotos/" + remover.id);
+      else {
+        const dados = new FormData();
+        dados.set("arquivo", arquivo!);
+        dados.set("alvo", alvo);
+        if (cadastroId != null) dados.set("cadastroId", String(cadastroId));
+        if (legenda.trim()) dados.set("legenda", legenda.trim());
+        if (alvo === "GALERIA") dados.set("categoria", categoria);
+        await api.post("/fotos", dados);
+        setArquivo(undefined);
+        setLegenda("");
+        if (input.current) input.current.value = "";
+      }
+      fotos.recarregar();
+      alterou?.();
+      setFeedback({ sucesso: remover ? "Foto removida." : "Foto publicada." });
+    } catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setOcupado(false); }
+  }
+
+  return <div className="stack photo-editor">
+    <Aviso erro={fotos.erro} carregando={fotos.carregando} />
+    <Aviso {...feedback} />
+    {atuais.length > 0 && <div className="grid gap-3 sm:grid-cols-3">{atuais.map(f => <div key={f.id} className="stack">
+      <img className="photo-preview" src={f.url} alt={f.legenda || "Foto publicada"} />
+      <Botao variante="perigo" disabled={ocupado} onClick={() => void gravar(f)}>Remover foto</Botao>
+    </div>)}</div>}
+    <Campo nome="Imagem PNG ou JPEG de atÃ© 2 MB"><input ref={input} type="file" accept="image/png,image/jpeg"
+      disabled={ocupado} onChange={e => {
+        const f = e.target.files?.[0];
+        if (f && f.size > 2097152) {
+          setArquivo(undefined);
+          setFeedback({ erro: "Selecione uma imagem de atÃ© 2 MB." });
+          e.target.value = "";
+        } else {
+          setArquivo(f);
+          setFeedback({});
+        }
+      }} /></Campo>
+    {arquivo && preview && <img className="photo-preview" src={preview} alt="PrÃ©via local da imagem" />}
+    {alvo === "GALERIA" && <><Campo nome="Categoria da foto"><select value={categoria} onChange={e => setCategoria(e.target.value)}>
+      {["Cortes", "Barba", "Ambiente", "Outros"].map(c => <option key={c}>{c}</option>)}
+    </select></Campo><Campo nome="DescriÃ§Ã£o da foto"><input value={legenda} maxLength={120}
+      onChange={e => setLegenda(e.target.value)} /></Campo></>}
+    <Botao disabled={!arquivo || ocupado} onClick={() => void gravar()}><ImagePlus size={17} />
+      {ocupado ? "Aguardeâ€¦" : atuais.length > 0 && alvo !== "GALERIA" ? "Substituir foto" : "Publicar foto"}
+    </Botao>
+  </div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\FotosPublicas.tsx =====
+import { useConsulta } from "../services/useConsulta";
+import type { AlvoFoto, Foto } from "../types/Barbearia";
+
+export function useFotos() {
+  return useConsulta<Foto[]>("/publico/fotos");
+}
+
+export function fotoDe(fotos: Foto[] | undefined, alvo: AlvoFoto, cadastroId: number | null = null) {
+  return fotos?.find(f => f.alvo === alvo && f.cadastroId === cadastroId);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\Interface.tsx =====
+import { cloneElement, useEffect, useId, useState } from "react";
+import type { ReactElement, ReactNode } from "react";
+import { CalendarDays, CheckCircle2, X } from "lucide-react";
+
+export function Titulo({ titulo, detalhe, acao }: { titulo: string; detalhe?: string; acao?: ReactNode }) {
+  return <header className="page-heading flex flex-wrap items-end justify-between gap-4">
+    <div><h1>{titulo}</h1>{detalhe && <p>{detalhe}</p>}</div>{acao}
+  </header>;
+}
+export function Campo({ nome, children }: { nome: string; children: ReactElement<{ id?: string }> }) {
+  const id = useId();
+  return <div className="field"><label htmlFor={id}>{nome}</label>{cloneElement(children, { id })}</div>;
+}
+function Toast({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(true);
+  useEffect(() => {
+    const id = window.setTimeout(() => setAberto(false), 6500);
+    return () => window.clearTimeout(id);
+  }, []);
+  return aberto ? <div className="notice studio-success studio-toast" role="status">
+    <CheckCircle2 size={18} /><span>{texto}</span>
+    <button type="button" className="icon-btn" aria-label="Dispensar aviso" onClick={() => setAberto(false)}><X size={16} /></button>
+  </div> : null;
+}
+export function Aviso({ erro, sucesso, carregando }: { erro?: string; sucesso?: string; carregando?: boolean }) {
+  if (erro) return <p className="notice notice--error" role="alert">{erro}</p>;
+  if (sucesso) return <Toast key={sucesso} texto={sucesso} />;
+  if (carregando) return <div className="studio-loading" role="status"><span>Carregandoâ€¦</span><i aria-hidden="true" /><i aria-hidden="true" /></div>;
+  return null;
+}
+export function Vazio({ texto }: { texto: string }) {
+  return <div className="empty"><CalendarDays size={21} /><p>{texto}</p></div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\Layout.tsx =====
+import { CalendarDays, CalendarPlus, ChevronDown, CircleUserRound, Clock3, Gift, Home as Inicio, LayoutDashboard, LogOut, Palette, UsersRound, Menu, Scissors, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { obterSessao, sair, temPapel } from "../services/auth";
+import { useMarca } from "./useMarca";
+
+export default function Layout() {
+  const [aberto, abrir] = useState(false);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { marca } = useMarca();
+  const sessao = obterSessao();
+  const equipe = temPapel("ADMIN") || temPapel("BARBEIRO");
+  const admin = temPapel("ADMIN");
+
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [pathname]);
+
+  async function logout() {
+    try { await api.post("/logout"); } catch { /* A sessÃ£o local sempre Ã© encerrada. */ }
+    finally { sair(); abrir(false); navigate("/login", { replace: true }); }
+  }
+
+  const adminRotas = ["/painel", "/agenda", "/clientes", "/servicos", "/profissionais", "/expediente", "/marca", "/usuarios", "/permissoes", "/atribuir-permissoes"];
+  const menuAdmin = admin && adminRotas.some(r => pathname === r || pathname.startsWith(r + "/"));
+  const secoesAdmin = [
+    ["/painel", "VisÃ£o geral", LayoutDashboard], ["/agenda", "Agenda", CalendarDays],
+    ["/clientes", "Clientes", UsersRound], ["/servicos", "ServiÃ§os", Scissors],
+    ["/profissionais", "Profissionais", CircleUserRound], ["/expediente", "Expediente", Clock3],
+    ["/marca", "PersonalizaÃ§Ã£o", Palette], ["/usuarios", "UsuÃ¡rios", UsersRound],
+    ["/permissoes", "PermissÃµes", Gift], ["/atribuir-permissoes", "Acessos", Gift],
+  ] as const;
+  const fechar = () => abrir(false);
+  const itens = [
+    { rota: "/inicio", nome: "InÃ­cio", Icone: Inicio },
+    { rota: "/agendar", nome: "Agendar", Icone: CalendarPlus },
+    { rota: "/meus-horarios", nome: "HorÃ¡rios", Icone: Clock3 },
+    { rota: "/fidelidade", nome: "Fidelidade", Icone: Gift },
+    { rota: "/perfil", nome: "Conta", Icone: CircleUserRound },
+  ];
+  return <>
+    <a href="#conteudo" className="skip">Ir para o conteÃºdo</a>
+    <header className="site-header">
+      <div className="site-header-inner shell">
+        <Link className="wordmark" to="/inicio" onClick={fechar}>
+          <span className="wordmark-icon">{marca?.logo ? <img src={marca.demonstracao && marca.logo === "/api/publico/logo?v=1" ? "/studio/marca.png" : marca.logo} alt="" /> : <Scissors size={20} strokeWidth={1.7} />}</span>
+          <span>{marca?.nome ?? "Studio Soldado do Corte"}</span>
+        </Link>
+        <nav className={`site-nav ${aberto ? "site-nav--open" : ""}`} aria-label="Menu principal" id="menu-principal">
+          {!equipe && <NavLink to="/catalogo" onClick={fechar}>ServiÃ§os</NavLink>}
+          {!equipe && <NavLink to="/equipe" onClick={fechar}>Equipe</NavLink>}
+          {admin && <NavLink to="/painel" onClick={fechar}><LayoutDashboard size={16} /> VisÃ£o geral</NavLink>}
+          {equipe ? <NavLink to="/agenda" onClick={fechar}><CalendarDays size={16} /> Agenda</NavLink> : <>
+            <NavLink to="/agendar" onClick={fechar}><CalendarPlus size={16} /> Agendar</NavLink>
+            <NavLink to="/meus-horarios" onClick={fechar}><Clock3 size={16} /> Meus horÃ¡rios</NavLink>
+            <NavLink to="/fidelidade" onClick={fechar}><Gift size={16} /> Fidelidade</NavLink>
+          </>}
+          {admin && <details className="admin-menu" key={pathname}>
+            <summary>GestÃ£o <ChevronDown size={15} /></summary>
+            <div>
+              <NavLink to="/servicos" onClick={fechar}>ServiÃ§os</NavLink>
+              <NavLink to="/profissionais" onClick={fechar}>Profissionais</NavLink>
+              <NavLink to="/expediente" onClick={fechar}>Expediente e bloqueios</NavLink>
+              <NavLink to="/clientes" onClick={fechar}>Clientes</NavLink>
+              <NavLink to="/marca" onClick={fechar}>Marca e fidelidade</NavLink>
+              <NavLink to="/usuarios" onClick={fechar}>UsuÃ¡rios</NavLink>
+              <NavLink to="/permissoes" onClick={fechar}>PermissÃµes</NavLink>
+              <NavLink to="/atribuir-permissoes" onClick={fechar}>Atribuir permissÃµes</NavLink>
+            </div>
+          </details>}
+          {sessao && <NavLink to="/perfil" onClick={fechar}><CircleUserRound size={16} /> Perfil</NavLink>}
+        </nav>
+        <div className="header-actions">
+          {sessao ? <button type="button" className="button button--neutro" onClick={() => void logout()}><LogOut size={16} /> Sair</button>
+            : <Link to="/login" className="button button--neutro">Entrar</Link>}
+          <button type="button" className="menu-toggle" aria-expanded={aberto} aria-controls="menu-principal"
+            aria-label={aberto ? "Fechar menu" : "Abrir menu"} onClick={() => abrir(!aberto)}>{aberto ? <X /> : <Menu />}</button>
+        </div>
+      </div>
+    </header>
+    <main id="conteudo" className={`shell site-main ${menuAdmin ? "studio-admin-layout" : ""}`}>
+      {menuAdmin && <aside className="studio-admin-rail"><nav aria-label="AdministraÃ§Ã£o">{secoesAdmin.map(([r, nome, Icone]) =>
+        <NavLink to={r} key={r}><Icone size={17} /> {nome}</NavLink>)}</nav></aside>}
+      <div className="route-view" key={pathname}><Outlet /></div>
+    </main>
+    {!equipe && <nav className="bottom-nav" aria-label="NavegaÃ§Ã£o rÃ¡pida">
+      {itens.map(({ rota, nome, Icone }) => <NavLink key={rota} to={rota} className={rota === "/inicio" && pathname === "/" ? "active" : undefined}
+        aria-current={rota === "/inicio" && pathname === "/" ? "page" : undefined} onClick={fechar}>
+        <span><Icone size={19} /></span><small>{nome}</small></NavLink>)}
+    </nav>}
+  </>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\MarcaContext.tsx =====
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import type { Marca } from "../types/Barbearia";
+import { useConsulta } from "../services/useConsulta";
+
+import { contexto } from "./useMarca";
+export function MarcaProvider({ children }: { children: ReactNode }) {
+  const consulta = useConsulta<Marca>("/publico/barbearia");
+  const [alterada, atualizar] = useState<Marca>();
+  const marca = alterada ?? consulta.dados;
+
+  useEffect(() => {
+    if (marca) document.title = marca.nome;
+  }, [marca]);
+
+  return <contexto.Provider value={{ marca, erro: consulta.erro, atualizar }}>
+    <div className="app" style={marca ? {
+      "--gold": marca.corDestaque, "--base": marca.corFundo,
+    } as CSSProperties : undefined}>{children}</div>
+  </contexto.Provider>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\Semana.tsx =====
+import { useEffect, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Campo } from "./Interface";
+import { hoje } from "../services/formato";
+
+export function somarDias(iso: string, dias: number) {
+  const data = new Date(iso + "T12:00:00Z");
+  data.setUTCDate(data.getUTCDate() + dias);
+  return data.toISOString().slice(0, 10);
+}
+const mes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
+const semana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
+const completa = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" });
+const utc = (s: string) => new Date(s + "T12:00:00Z");
+
+export default function Semana({ dia, escolher }: { dia: string; escolher: (dia: string) => void }) {
+  const menor = hoje();
+  const maior = somarDias(menor, 90);
+  const [inicio, setInicio] = useState(dia >= menor && dia <= maior ? dia : menor);
+  useEffect(() => {
+    setInicio(anterior => dia < anterior || dia > somarDias(anterior, 6) ? dia : anterior);
+  }, [dia]);
+  const [calendario, setCalendario] = useState(false);
+  const dias = Array.from({ length: 7 }, (_, i) => somarDias(inicio, i));
+  return <div className="week-picker">
+    <div className="week-top">
+      <button type="button" className="icon-btn" aria-label="Semana anterior" disabled={inicio <= menor}
+        onClick={() => setInicio([somarDias(inicio, -7), menor].sort()[1])}><ChevronLeft size={20} /></button>
+      <strong aria-live="polite">{mes.format(utc(inicio))}</strong>
+      <button type="button" className="icon-btn" aria-label="PrÃ³xima semana" disabled={dias[6] >= maior}
+        onClick={() => setInicio(somarDias(inicio, 7))}><ChevronRight size={20} /></button>
+    </div>
+    <div className="week-days" key={inicio}>{dias.map(d => <button key={d} type="button" disabled={d > maior}
+      aria-label={completa.format(utc(d))} aria-pressed={d === dia} onClick={() => escolher(d)}>
+      <small>{semana.format(utc(d)).replace(".", "")}</small><strong>{d.slice(8)}</strong></button>)}</div>
+    <button type="button" className="studio-text-link" aria-expanded={calendario} onClick={() => setCalendario(v => !v)}>
+      <CalendarDays size={17} /> CalendÃ¡rio mensal</button>
+    {calendario && <Campo nome="Data"><input type="date" min={menor} max={maior} value={dia}
+      onChange={e => { const d = e.target.value; if (d >= menor && d <= maior) { setInicio(d); escolher(d); } }} /></Campo>}
+  </div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\components\useMarca.ts =====
+import { createContext, useContext } from "react";
+import type { Marca } from "../types/Barbearia";
+
+export const contexto = createContext<{ marca?: Marca; erro?: string; atualizar: (m: Marca) => void }>({
+  atualizar: () => undefined,
+});
+export const useMarca = () => useContext(contexto);
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\AgendaPage.tsx =====
+import { useState } from "react";
+import { useAgora } from "../services/useAgora";
+import { CalendarPlus } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Aviso, Campo, Titulo, Vazio } from "../components/Interface";
+import AgendamentoCard from "../components/AgendamentoCard";
+import { temPapel } from "../services/auth";
+import { hoje, instanteAgenda, statusTexto } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import type { Agendamento, Barbeiro } from "../types/Barbearia";
+
+export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
+  const agora = useAgora();
+  const admin = temPapel("ADMIN");
+  const [params, setParams] = useSearchParams();
+  const dia = params.get("data") ?? hoje();
+  const [barbeiro, setBarbeiro] = useState("");
+  const [filtro, setFiltro] = useState<"proximos" | "historico">("proximos");
+  const [situacao, setSituacao] = useState<Agendamento["status"] | "">("");
+  const [sucesso, setSucesso] = useState("");
+  const barbeiros = useConsulta<Barbeiro[]>("/publico/barbeiros");
+  const agenda = useConsulta<Agendamento[]>(equipe
+    ? `/agendamentos?data=${encodeURIComponent(dia)}${barbeiro ? "&barbeiroId=" + barbeiro : ""}` : "/agendamentos", equipe ? 5000 : 0);
+  const visiveis = agenda.dados?.filter(a => {
+    if (equipe) return !situacao || situacao === a.status;
+    const futuro = (a.status === "RESERVADO" || a.status === "CONFIRMADO") && instanteAgenda(a.fim) > agora;
+    return filtro === "proximos" ? futuro : !futuro;
+  });
+  const lista = !equipe && filtro === "proximos" ? visiveis?.toReversed() : visiveis;
+  return <>
+    <Titulo titulo={equipe ? "Agenda" : "Meus horÃ¡rios"} detalhe={equipe ? "Acompanhe os atendimentos por dia." : "Consulte suas reservas e seu histÃ³rico."}
+      acao={(!equipe || admin) && <Link className="button button--primario" to="/agendar"><CalendarPlus size={18} /> {equipe ? "Nova reserva" : "Agendar horÃ¡rio"}</Link>} />
+    {equipe ? <section className="panel grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Campo nome="Data da agenda"><input type="date" value={dia} onChange={e => {
+        if (e.target.value) setParams({ data: e.target.value }); setSucesso("");
+      }} /></Campo>
+      {admin && <Campo nome="Filtrar por profissional"><select value={barbeiro} onChange={e => { setBarbeiro(e.target.value); setSucesso(""); }}>
+        <option value="">Todos os profissionais</option>{barbeiros.dados?.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+      </select></Campo>}
+      <Campo nome="SituaÃ§Ã£o"><select value={situacao} onChange={e => setSituacao(e.target.value as Agendamento["status"] | "")}>
+        <option value="">Todas as situaÃ§Ãµes</option>{Object.entries(statusTexto).map(([chave, nome]) => <option key={chave} value={chave}>{nome}</option>)}
+      </select></Campo>
+    </section> : <div className="tabs" role="group" aria-label="Filtrar horÃ¡rios">
+      <button type="button" aria-pressed={filtro === "proximos"} onClick={() => setFiltro("proximos")}>PrÃ³ximos</button>
+      <button type="button" aria-pressed={filtro === "historico"} onClick={() => setFiltro("historico")}>HistÃ³rico</button>
+    </div>}
+    <div className="stack agenda-results">
+      {equipe && lista && lista.length > 0 && <div className="agenda-counts" aria-label="Resumo da agenda">
+        <span><strong>{lista.length}</strong> no dia</span>
+        <span><strong>{lista.filter(a => a.status === "RESERVADO").length}</strong> a confirmar</span>
+        <span><strong>{lista.filter(a => a.status === "CONFIRMADO").length}</strong> confirmados</span>
+        <span><strong>{lista.filter(a => a.status === "CONCLUIDO").length}</strong> concluÃ­dos</span>
+      </div>}
+      <Aviso erro={agenda.erro || barbeiros.erro} carregando={agenda.carregando} />
+      <Aviso sucesso={sucesso} />
+      {lista?.length === 0 && <Vazio texto={equipe ? "Nenhum atendimento para esse dia." : "VocÃª nÃ£o tem atendimentos nesta lista."} />}
+      <div className="grid gap-4 lg:grid-cols-2">{lista?.map(a => <AgendamentoCard key={a.id} a={a}
+        equipe={equipe} podeTrocarProfissional={!equipe || admin} barbeiros={barbeiros.dados ?? []}
+        recarregar={msg => { setSucesso(msg); agenda.recarregar(); }} />)}</div>
+    </div>
+  </>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\AgendarPage.tsx =====
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowLeft, ArrowRight, CalendarCheck2, Check, Clock3, Gift, LogIn, UsersRound } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import api from "../services/api";
+import { data, dataHora, hoje, hora, mensagem, moeda } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import { obterSessao, temPapel } from "../services/auth";
+import { Aviso, Campo, Titulo, Vazio } from "../components/Interface";
+import Botao from "../components/Botao";
+import { FotoEditorial } from "../components/Experiencia";
+import { useFotos } from "../components/FotosPublicas";
+import { useMarca } from "../components/useMarca";
+import Semana, { somarDias } from "../components/Semana";
+import { fotoProfissional, fotoServico } from "../services/fotosDemo";
+import type { Agendamento, Barbeiro, Cartao, Servico } from "../types/Barbearia";
+import type { Usuario } from "../types/Usuario";
+
+const etapas = ["ServiÃ§o", "Profissional", "Data e horÃ¡rio", "RevisÃ£o"];
+const titulos = ["Escolha o serviÃ§o", "Escolha o profissional", "Escolha data e horÃ¡rio", "Revise sua reserva"];
+const qualquer = "qualquer";
+const periodos = ["ManhÃ£", "Tarde", "Noite"];
+function periodoDe(h: string) {
+  const horas = Number(h.slice(11, 13));
+  return horas < 12 ? "ManhÃ£" : horas < 18 ? "Tarde" : "Noite";
+}
+const isoDia = /^\d{4}-\d{2}-\d{2}$/;
+const isoHorario = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::00)?$/;
+function dataValida(valor: string | null) {
+  return valor && isoDia.test(valor) && valor >= hoje() && valor <= somarDias(hoje(), 90) && Number.isFinite(Date.parse(valor + "T12:00:00Z")) ? valor : hoje();
+}
+
+export default function AgendarPage() {
+  const [params] = useSearchParams();
+  const sessao = obterSessao();
+  const admin = temPapel("ADMIN");
+  const clienteLogado = temPapel("CLIENTE");
+  const [servico, setServico] = useState(params.get("servico") ?? "");
+  const [barbeiro, setBarbeiro] = useState(params.get("profissional") ?? "");
+  const [dia, setDia] = useState(() => dataValida(params.get("dia")));
+  const [horario, setHorario] = useState(() => {
+    const h = params.get("horario");
+    return h && isoHorario.test(h) && h.startsWith(dia) ? h : "";
+  });
+  const [periodo, setPeriodo] = useState(() => horario ? periodoDe(horario) : "");
+  const [cliente, setCliente] = useState("");
+  const [premio, setPremio] = useState(params.get("premio") ?? "");
+  const [etapa, setEtapa] = useState(() => params.has("servico") && params.has("profissional") && horario ? (admin ? 0 : 3) : 0);
+  const [sentido, setSentido] = useState("frente");
+  const [versao, setVersao] = useState(0);
+  const [reserva, setReserva] = useState<Agendamento>();
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const enviando = useRef(false);
+  const titulo = useRef<HTMLHeadingElement>(null);
+  const focar = useRef(false);
+  const fotos = useFotos();
+  const { marca } = useMarca();
+  const servicos = useConsulta<Servico[]>("/publico/servicos");
+  const barbeiros = useConsulta<Barbeiro[]>("/publico/barbeiros");
+  const clientes = useConsulta<Usuario[]>(admin ? "/usuarios" : null);
+  const cartao = useConsulta<Cartao>(admin ? (cliente ? `/fidelidade/${cliente}` : null) : clienteLogado ? "/fidelidade" : null);
+  const beneficios = cartao.dados?.historico.filter(m => m.tipo === "RECOMPENSA" && !m.agendamentoId && !m.resgatadoEm
+    && m.servicoId?.toString() === servico) ?? [];
+  const selecionado = servicos.dados?.find(s => String(s.id) === servico);
+  const profissional = barbeiros.dados?.find(b => String(b.id) === barbeiro);
+  const profissionalValido = barbeiro === qualquer || Boolean(profissional);
+  const filtro = new URLSearchParams({ servicoId: servico });
+  if (profissional) filtro.set("barbeiroId", String(profissional.id));
+  const consultar = etapa >= 2 && selecionado && profissionalValido;
+  const horarios = useConsulta<string[]>(consultar ? `/publico/horarios?${filtro}&data=${dia}&v=${versao}` : null);
+  const sugestoes = useConsulta<string[]>(consultar && horarios.dados?.length === 0
+    ? `/publico/proximos-horarios?${filtro}&aPartir=${somarDias(dia, 1)}&v=${versao}` : null);
+  const periodosAbertos = periodos.filter(p => horarios.dados?.some(h => periodoDe(h) === p));
+  const periodoAtual = periodosAbertos.includes(periodo) ? periodo : periodosAbertos[0];
+  const horariosExibidos = horarios.dados?.filter(h => periodoDe(h) === periodoAtual);
+  const horarioValido = Boolean(horario && horarios.dados?.includes(horario));
+  const usandoPremio = beneficios.some(b => String(b.id) === premio);
+  const pronto = [Boolean(selecionado && (!admin || cliente)), profissionalValido, horarioValido];
+
+  useEffect(() => {
+    if (!focar.current) return;
+    titulo.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [etapa, reserva]);
+
+  function irPara(destino: number) {
+    focar.current = true;
+    setSentido(destino < etapa ? "volta" : "frente");
+    setEtapa(destino);
+  }
+  function escolherDia(d: string) {
+    if (dia !== d) { setDia(d); setHorario(""); setErro(""); }
+  }
+
+  async function agendar(e: FormEvent) {
+    e.preventDefault();
+    if (etapa !== 3 || !sessao || !horarioValido || !selecionado || !profissionalValido || (admin && !cliente) || enviando.current) return;
+    enviando.current = true;
+    setOcupado(true); setErro("");
+    try {
+      const { data: resultado } = await api.post<Agendamento>("/agendamentos", {
+        servicoId: selecionado.id, barbeiroId: profissional?.id ?? null, inicio: horario,
+        clienteId: admin ? Number(cliente) : null, premioId: usandoPremio ? Number(premio) : null,
+      });
+      focar.current = true;
+      setReserva(resultado);
+    } catch (e) { setErro(mensagem(e)); setHorario(""); setVersao(v => v + 1); irPara(2); }
+    finally { enviando.current = false; setOcupado(false); }
+  }
+
+  if (sessao && !admin && !clienteLogado) return <Vazio texto="Use uma conta de cliente para reservar um horÃ¡rio." />;
+  if (reserva) return <section className="panel booking-result">
+    <span className="large-icon confirmation-mark"><CalendarCheck2 size={30} /></span>
+    <h1 tabIndex={-1} ref={titulo}>HorÃ¡rio reservado</h1>
+    <div className="reservation-ticket"><strong>{reserva.servico}</strong><p>Com {reserva.barbeiro}</p><p>{dataHora(reserva.inicio)}</p>
+      <p>{hora(reserva.inicio)} â€“ {hora(reserva.fim)} Â· {moeda(reserva.preco)}</p></div>
+    <Link className="button button--primario" to={admin ? `/agenda?data=${reserva.inicio.slice(0, 10)}` : "/meus-horarios"}>
+      {admin ? "Ver agenda" : "Meus horÃ¡rios"} <ArrowRight size={17} /></Link>
+    <Link className="studio-text-link" to="/inicio"><ArrowLeft size={17} /> Voltar ao inÃ­cio</Link>
+  </section>;
+
+  const retorno = new URLSearchParams({ servico, profissional: barbeiro, dia, horario });
+  if (premio) retorno.set("premio", premio);
+  return <div className="booking-v2 studio-booking">
+    <Titulo titulo={admin ? "Nova reserva" : "Agende seu horÃ¡rio"} />
+    <ol className="booking-steps" aria-label="Etapas do agendamento">{etapas.map((nome, i) => <li key={nome}>
+      <button type="button" disabled={i > etapa || ocupado} aria-current={i === etapa ? "step" : undefined}
+        className={i < etapa ? "step-done" : ""} onClick={() => irPara(i)}>
+        <span>{i < etapa ? <Check size={15} /> : i + 1}</span><small>{nome}</small>
+      </button>
+    </li>)}</ol>
+    <form className="booking-grid" onSubmit={agendar}>
+      <section className="panel form-stack booking-stage" key={etapa} data-sentido={sentido} data-etapa={etapa}>
+        <h2 tabIndex={-1} ref={titulo}>{titulos[etapa]}</h2>
+        <Aviso erro={erro || servicos.erro || barbeiros.erro || clientes.erro || cartao.erro}
+          carregando={servicos.carregando || barbeiros.carregando || clientes.carregando} />
+        {etapa === 0 && <>
+          {admin && <Campo nome="Cliente"><select value={cliente} required onChange={e => { setCliente(e.target.value); setPremio(""); }}>
+            <option value="">Selecione o cliente</option>{clientes.dados?.filter(c => c.ativo && c.permissoes.some(p => p.nome === "CLIENTE"))
+              .map(c => <option key={c.id} value={c.id}>{c.nome} ({c.username})</option>)}</select></Campo>}
+          <fieldset className="booking-options" aria-label="ServiÃ§os">{servicos.dados?.map(s => <label key={s.id} className="booking-option">
+            <input type="radio" name="servico" value={s.id} checked={servico === String(s.id)}
+              onChange={() => { setServico(String(s.id)); setHorario(""); setPremio(""); }} />
+            <span className="booking-option-card"><FotoEditorial src={fotoServico(fotos.dados, s, marca?.demonstracao)} />
+              <span><strong>{s.nome}</strong>{s.descricao && <small>{s.descricao}</small>}<small>{s.duracaoMinutos} min Â· {moeda(s.preco)}</small></span>
+              {servico === String(s.id) && <Check size={18} className="accent selection-mark" />}</span>
+          </label>)}</fieldset>
+          {servicos.dados?.length === 0 && <p className="muted">Nenhum serviÃ§o disponÃ­vel.</p>}
+        </>}
+        {etapa === 1 && <>
+          {marca?.demonstracao && <p className="demo-caption">Perfis e fotos de demonstraÃ§Ã£o</p>}
+          <fieldset className="booking-options" aria-label="Profissionais">
+            {Boolean(barbeiros.dados?.length) && <label className="booking-option">
+              <input type="radio" name="profissional" value={qualquer} checked={barbeiro === qualquer}
+                onChange={() => { setBarbeiro(qualquer); setHorario(""); }} />
+              <span className="booking-option-card"><span className="large-icon"><UsersRound size={22} /></span>
+                <span><strong>Qualquer profissional disponÃ­vel</strong><small>Escolha entre os horÃ¡rios da equipe</small></span>
+                {barbeiro === qualquer && <Check size={18} className="accent selection-mark" />}</span>
+            </label>}
+            {barbeiros.dados?.map(b => <label className="booking-option" key={b.id}>
+              <input type="radio" name="profissional" value={b.id} checked={barbeiro === String(b.id)}
+                onChange={() => { setBarbeiro(String(b.id)); setHorario(""); }} />
+              <span className="booking-option-card"><FotoEditorial src={fotoProfissional(fotos.dados, b, marca?.demonstracao)} />
+                <span><strong>{b.nome}</strong>{b.descricao && <small>{b.descricao}</small>}</span>
+                {barbeiro === String(b.id) && <Check size={18} className="accent selection-mark" />}</span>
+            </label>)}</fieldset>
+          {barbeiros.dados?.length === 0 && <p className="muted">Nenhum profissional disponÃ­vel.</p>}
+        </>}
+        {etapa === 2 && <>
+          {profissional && <div className="booking-person"><FotoEditorial src={fotoProfissional(fotos.dados, profissional, marca?.demonstracao)} />
+            <span><strong>{profissional.nome}</strong><small>{profissional.descricao}</small></span></div>}
+          <Semana key={dia.slice(0, 7)} dia={dia} escolher={escolherDia} />
+          <fieldset className="times"><legend>HorÃ¡rios disponÃ­veis</legend>
+            <Aviso carregando={horarios.carregando} erro={horarios.erro} />
+            {periodosAbertos.length > 1 && <div className="periodos-horario" role="group" aria-label="Filtrar horÃ¡rios por perÃ­odo">
+              {periodosAbertos.map(p => <button type="button" key={p} aria-pressed={p === periodoAtual} onClick={() => setPeriodo(p)}>{p}</button>)}
+            </div>}
+            <div className="time-grid">{horariosExibidos?.map(h => <label key={h} className="time-slot">
+              <input type="radio" name="horario" value={h} checked={horario === h} onChange={() => setHorario(h)} /><span>{hora(h)}</span>
+            </label>)}</div>
+            {horarios.dados?.length === 0 && <div className="stack"><p className="muted">Sem horÃ¡rios em {data(dia)}.</p>
+              <Aviso carregando={sugestoes.carregando} erro={sugestoes.erro} />
+              <div className="slot-links">{sugestoes.dados?.map(h => <Botao variante="neutro" key={h}
+                onClick={() => { setDia(h.slice(0, 10)); setHorario(h); setPeriodo(periodoDe(h)); setErro(""); }}>{dataHora(h)}</Botao>)}</div>
+              {sugestoes.dados?.length === 0 && <small className="muted">Tente outra semana ou profissional.</small>}</div>}
+          </fieldset>
+        </>}
+        {etapa === 3 && <>
+          {horario && <p className="inline-icon"><CalendarCheck2 size={22} /> {dataHora(horario)}</p>}
+          <p className="muted">{barbeiro === qualquer ? "Um profissional disponÃ­vel serÃ¡ atribuÃ­do na confirmaÃ§Ã£o." : profissional?.nome}</p>
+          <Aviso carregando={horarios.carregando} erro={horarios.erro || (horarios.dados && !horarioValido ? "Esse horÃ¡rio nÃ£o estÃ¡ mais disponÃ­vel. Escolha outro." : undefined)} />
+          {(!selecionado || !profissionalValido) && !servicos.carregando && !barbeiros.carregando && <Aviso erro="Revise o serviÃ§o e o profissional selecionados." />}
+          {beneficios.length > 0 && <Campo nome="Recompensa"><select value={premio} disabled={ocupado} onChange={e => setPremio(e.target.value)}>
+            <option value="">Sem recompensa</option>{beneficios.map(b => <option key={b.id} value={b.id}>{b.premio} gratuito Â· benefÃ­cio #{b.id}</option>)}
+          </select></Campo>}
+        </>}
+        <div className="booking-controls">
+          {etapa > 0 && <Botao variante="neutro" disabled={ocupado} onClick={() => irPara(etapa - 1)}><ArrowLeft size={17} /> Voltar</Botao>}
+          {etapa === 2 && horarioValido && <span className="studio-picked-time" aria-live="polite">{hora(horario)} selecionado</span>}
+          {etapa < 3 && <Botao disabled={!pronto[etapa]} onClick={() => { setErro(""); irPara(etapa + 1); }}>Continuar <ArrowRight size={17} /></Botao>}
+        </div>
+      </section>
+      <aside className="panel booking-summary">
+        <h2>Seu horÃ¡rio</h2><p>{selecionado?.nome ?? "Escolha um serviÃ§o"}</p>
+        {profissional && <p className="muted">{profissional.nome}</p>}
+        {barbeiro === qualquer && <p className="muted">Qualquer profissional</p>}
+        {horario && <p className="inline-icon muted"><Clock3 size={17} /> {dataHora(horario)}</p>}
+        {selecionado && <p className="muted">{selecionado.duracaoMinutos} min</p>}
+        <div className="summary-price"><span>Total</span><strong>{selecionado ? moeda(usandoPremio ? 0 : selecionado.preco) : "â€”"}</strong></div>
+        {usandoPremio && <p className="inline-icon"><Gift size={17} /> Recompensa selecionada</p>}
+        {etapa === 3 && (sessao
+          ? <Botao type="submit" disabled={ocupado || !horarioValido || (Boolean(premio) && cartao.carregando)}>
+            {ocupado ? "Reservandoâ€¦" : "Confirmar agendamento"} <ArrowRight size={17} /></Botao>
+          : horarioValido && <Link to="/login" state={{ destino: "/agendar?" + retorno.toString() }} className="button button--primario">
+            <LogIn size={18} /> Entrar para confirmar</Link>)}
+      </aside>
+    </form>
+  </div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\CatalogoPages.tsx =====
+import { useState } from "react";
+import FotosAdmin from "../components/FotosAdmin";
+import CadastroCrud from "../components/CadastroCrud";
+import type { DefCampo } from "../components/CadastroCrud";
+import type { Barbeiro, Servico } from "../types/Barbearia";
+import type { Usuario } from "../types/Usuario";
+import { dataHora, moeda } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+
+const basicos: DefCampo[] = [
+  { chave: "nome", nome: "Nome", obrigatorio: true, tamanho: 100 },
+  { chave: "descricao", nome: "DescriÃ§Ã£o", tamanho: 240 },
+];
+
+export function ServicosPage() {
+  return <CadastroCrud<Servico> titulo="ServiÃ§os" descricao="Gerencie preÃ§os, duraÃ§Ãµes e elegibilidade para fidelidade."
+    nomeNovo="Novo serviÃ§o" url="/servicos" campos={[...basicos,
+      { chave: "preco", nome: "PreÃ§o em reais", tipo: "number", obrigatorio: true, min: 0, max: 99999999, passo: "0.01" },
+      { chave: "duracaoMinutos", nome: "DuraÃ§Ã£o em minutos", tipo: "number", obrigatorio: true, min: 5, max: 480 },
+      { chave: "elegivel", nome: "Gera crÃ©dito de fidelidade", tipo: "checkbox" },
+      { chave: "ativo", nome: "DisponÃ­vel para agendar", tipo: "checkbox" },
+    ]} padrao={{ nome: "", descricao: "", preco: "", duracaoMinutos: "30", elegivel: true, ativo: true }}
+    editar={s => ({ nome: s.nome, ativo: s.ativo, elegivel: s.elegivel, descricao: s.descricao ?? "", preco: String(s.preco), duracaoMinutos: String(s.duracaoMinutos) })}
+    enviar={v => ({ ...v, preco: Number(v.preco), duracaoMinutos: Number(v.duracaoMinutos) })}
+    exibir={s => <><h3>{s.nome} {!s.ativo && <span className="tag">Inativo</span>}</h3>
+      <p className="muted">{moeda(s.preco)} Â· {s.duracaoMinutos} min{s.elegivel && " Â· Gera fidelidade"}</p>
+      {s.descricao && <p>{s.descricao}</p>}</>}
+    detalhes={s => <details className="catalog-photo"><summary>Foto do serviÃ§o</summary><FotosAdmin alvo="SERVICO" cadastroId={s.id} /></details>}
+    remover="Desativar" podeRemover={s => s.ativo} />;
+}
+
+export function ProfissionaisPage() {
+  const contas = useConsulta<Usuario[]>("/usuarios");
+  const opcoes = contas.dados?.filter(u => u.ativo && u.permissoes.some(p => p.nome === "BARBEIRO"))
+    .map(u => ({ valor: String(u.id), nome: `${u.nome} (${u.username})` })) ?? [];
+  return <CadastroCrud<Barbeiro> titulo="Profissionais" descricao="Gerencie a equipe e vincule as contas de acesso Ã  agenda."
+    nomeNovo="Novo profissional" url="/barbeiros" campos={[...basicos.map(c => c.chave === "descricao" ? { ...c, nome: "Especialidade e apresentaÃ§Ã£o" } : c),
+      { chave: "usuarioId", nome: "Conta de acesso", tipo: "select", opcoes, opcaoVazia: "Sem conta vinculada" },
+      { chave: "ativo", nome: "DisponÃ­vel para agendar", tipo: "checkbox" },
+    ]} padrao={{ nome: "", descricao: "", usuarioId: "", ativo: true }}
+    editar={b => ({ nome: b.nome, descricao: b.descricao ?? "", usuarioId: b.usuarioId?.toString() ?? "", ativo: b.ativo })}
+    enviar={v => ({ ...v, usuarioId: v.usuarioId ? Number(v.usuarioId) : null })}
+    exibir={b => <><h3>{b.nome} {!b.ativo && <span className="tag">Inativo</span>}</h3>
+      <p className="muted">{b.descricao || (b.usuarioId ? "Conta vinculada" : "Sem conta vinculada")}</p></>}
+    detalhes={b => <details className="catalog-photo"><summary>Foto do profissional</summary><FotosAdmin alvo="BARBEIRO" cadastroId={b.id} /></details>}
+    aviso={contas.erro} remover="Desativar" podeRemover={b => b.ativo} />;
+}
+
+const dias: Record<string, string> = {
+  MONDAY: "Segunda-feira", TUESDAY: "TerÃ§a-feira", WEDNESDAY: "Quarta-feira", THURSDAY: "Quinta-feira",
+  FRIDAY: "Sexta-feira", SATURDAY: "SÃ¡bado", SUNDAY: "Domingo",
+};
+interface Faixa { id: number; barbeiroId: number | null; inicio: string; fim: string; }
+interface Expediente extends Faixa { dia: string; }
+interface Bloqueio extends Faixa { motivo: string | null; }
+
+export function ExpedientePage() {
+  const [aba, setAba] = useState<"expediente" | "bloqueio">("expediente");
+  const equipe = useConsulta<Barbeiro[]>("/barbeiros");
+  const profissional: DefCampo = { chave: "barbeiroId", nome: "Aplicar a", tipo: "select",
+    opcaoVazia: "Barbearia inteira", opcoes: equipe.dados?.map(b => ({ valor: String(b.id), nome: b.nome })) ?? [] };
+  const nomeEquipe = (id: number | null) => id ? equipe.dados?.find(b => b.id === id)?.nome ?? "Profissional" : "Barbearia inteira";
+  return <>
+    <div className="tabs management-tabs" role="group" aria-label="ConfiguraÃ§Ã£o de horÃ¡rios">
+      <button aria-pressed={aba === "expediente"} onClick={() => setAba("expediente")}>Expediente semanal</button>
+      <button aria-pressed={aba === "bloqueio"} onClick={() => setAba("bloqueio")}>Bloqueios pontuais</button>
+    </div>
+    {aba === "expediente" ? <CadastroCrud<Expediente> key="expediente" titulo="Expediente semanal"
+      descricao="Um horÃ¡rio sÃ³ abre quando o expediente da barbearia e do profissional coincidem."
+      url="/expedientes" nomeNovo="Novo expediente" aviso={equipe.erro}
+      campos={[profissional, { chave: "dia", nome: "Dia da semana", tipo: "select", obrigatorio: true,
+        opcoes: Object.entries(dias).map(([valor, nome]) => ({ valor, nome })) },
+        { chave: "inicio", nome: "Abertura", tipo: "time", obrigatorio: true },
+        { chave: "fim", nome: "Encerramento", tipo: "time", obrigatorio: true }]}
+      padrao={{ barbeiroId: "", dia: "MONDAY", inicio: "09:00", fim: "18:00" }}
+      editar={e => ({ barbeiroId: e.barbeiroId?.toString() ?? "", dia: e.dia, inicio: e.inicio.slice(0, 5), fim: e.fim.slice(0, 5) })}
+      enviar={v => ({ ...v, barbeiroId: v.barbeiroId ? Number(v.barbeiroId) : null })}
+      exibir={e => <><h3>{dias[e.dia]} Â· {e.inicio.slice(0, 5)} â€“ {e.fim.slice(0, 5)}</h3><p className="muted">{nomeEquipe(e.barbeiroId)}</p></>} />
+      : <CadastroCrud<Bloqueio> key="bloqueio" titulo="Bloqueios pontuais" descricao="Feche horÃ¡rios para pausas, folgas ou feriados."
+        url="/bloqueios" nomeNovo="Novo bloqueio" aviso={equipe.erro}
+        campos={[profissional, { chave: "motivo", nome: "Motivo interno", tamanho: 180 },
+          { chave: "inicio", nome: "InÃ­cio", tipo: "datetime-local", obrigatorio: true },
+          { chave: "fim", nome: "Fim", tipo: "datetime-local", obrigatorio: true }]}
+        padrao={{ barbeiroId: "", motivo: "", inicio: "", fim: "" }}
+        editar={e => ({ barbeiroId: e.barbeiroId?.toString() ?? "", motivo: e.motivo ?? "", inicio: e.inicio.slice(0, 16), fim: e.fim.slice(0, 16) })}
+        enviar={v => ({ ...v, barbeiroId: v.barbeiroId ? Number(v.barbeiroId) : null })}
+        exibir={e => <><h3>{nomeEquipe(e.barbeiroId)}{e.motivo ? ` Â· ${e.motivo}` : ""}</h3>
+          <p className="muted">{dataHora(e.inicio)} â†’ {dataHora(e.fim)}</p></>} />}
+  </>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\ClientesPage.tsx =====
+import { Link, useParams } from "react-router-dom";
+import { Aviso, Titulo, Vazio } from "../components/Interface";
+import { useConsulta } from "../services/useConsulta";
+import { dataHora, statusTexto } from "../services/formato";
+import { CartaoFidelidade } from "./FidelidadePage";
+import type { Agendamento, Cartao } from "../types/Barbearia";
+import type { Usuario } from "../types/Usuario";
+
+export function ClientesPage() {
+  const consulta = useConsulta<Usuario[]>("/usuarios");
+  const clientes = consulta.dados?.filter(u => u.permissoes.some(p => p.nome === "CLIENTE"));
+  return <><Titulo titulo="Clientes" detalhe="Consulte o cadastro, os atendimentos e a fidelidade." />
+    <Aviso erro={consulta.erro} carregando={consulta.carregando} />
+    {clientes?.length === 0 && <Vazio texto="Nenhum cliente cadastrado." />}
+    {Boolean(clientes?.length) && <div className="panel">
+      {clientes?.map(c => <div className="list-row" key={c.id}><div><h3>{c.nome} {!c.ativo && <span className="tag">Inativo</span>}</h3>
+        <p className="muted">{c.email}</p></div><Link className="button button--neutro" to={`/clientes/${c.id}`}>Ver cliente</Link></div>)}
+    </div>}</>;
+}
+
+export function ClientePage() {
+  const { id } = useParams();
+  const c = useConsulta<Usuario>(`/usuarios/${id}`);
+  const cartao = useConsulta<Cartao>(`/fidelidade/${id}`);
+  const agenda = useConsulta<Agendamento[]>(`/agendamentos/cliente/${id}`);
+  return <><Titulo titulo={c.dados?.nome ?? "Cliente"} detalhe={c.dados?.email}
+    acao={<Link className="button button--neutro" to="/clientes">Voltar aos clientes</Link>} />
+    <div className="stack"><Aviso erro={c.erro || cartao.erro || agenda.erro} carregando={c.carregando || cartao.carregando || agenda.carregando} />
+      {agenda.dados && <section className="panel stack"><h2>HistÃ³rico de atendimentos</h2>
+        {agenda.dados.length === 0 && <Vazio texto="Nenhum atendimento registrado." />}
+        {agenda.dados.map(a => <div className="list-row" key={a.id}><div><h3>{a.servico}</h3><p className="muted">{dataHora(a.inicio)} Â· {a.barbeiro}</p></div>
+          <span className={`status status--${a.status.toLowerCase()}`}>{statusTexto[a.status]}</span></div>)}
+      </section>}
+      {cartao.dados && <CartaoFidelidade cartao={cartao.dados} cliente={false} />}
+    </div></>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\FidelidadePage.tsx =====
+import { ArrowRight, Check, Gift, Scissors } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Aviso, Titulo, Vazio } from "../components/Interface";
+import { useMarca } from "../components/useMarca";
+import { Crown } from "lucide-react";
+import { dataHora } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import type { Cartao } from "../types/Barbearia";
+
+export function CartaoFidelidade({ cartao, cliente }: { cartao: Cartao; cliente: boolean }) {
+  const { marca } = useMarca();
+  const premios = cartao.historico.filter(m => m.tipo === "RECOMPENSA");
+  const disponiveis = premios.filter(p => !p.resgatadoEm && !p.agendamentoId).length;
+  const creditos = cartao.historico.filter(m => m.tipo === "CREDITO");
+  const faltam = Math.max(0, cartao.meta - cartao.progresso);
+  return <div className="stack studio-loyalty">
+    <section className="member-pass">
+      {marca?.logo ? <img src={marca.demonstracao && marca.logo === "/api/publico/logo?v=1" ? "/studio/marca.png" : marca.logo} alt={marca.nome} /> : <strong>{marca?.nome}</strong>}
+      <small>CartÃ£o de membro</small>
+    </section>
+    <section className="loyalty-card">
+      <div className="section-heading"><strong>CartÃ£o fidelidade</strong><Crown size={23} className="accent" /></div>
+      {!cartao.ativo && <span className="tag">Programa pausado</span>}
+      <h2>{cartao.progresso} de {cartao.meta} <span>concluÃ­dos</span></h2>
+      {cartao.ativo && <p>{faltam ? `Faltam ${faltam} para seu benefÃ­cio` : "A meta atual jÃ¡ foi atingida. A regra Ã© processada na prÃ³xima conclusÃ£o elegÃ­vel."}
+        {cartao.proximoPremio && faltam > 0 ? ` Â· ${cartao.proximoPremio}` : ""}</p>}
+      <progress aria-label="Progresso da fidelidade" value={Math.min(cartao.progresso, cartao.meta)} max={cartao.meta} />
+      {cartao.meta <= 12 && <div className="stamp-grid" aria-hidden="true">
+        {Array.from({ length: cartao.meta }, (_, i) => <span className={i < cartao.progresso ? "stamped" : ""} key={i}>
+          {i < cartao.progresso ? <Check size={17} /> : <Scissors size={15} />}</span>)}
+      </div>}
+    </section>
+    {cartao.ativo && cartao.proximoPremio && <aside className="proximo-premio"><Gift size={25} />
+      <span><strong>PrÃ³xima recompensa</strong><small>{cartao.proximoPremio}</small></span>
+    </aside>}
+    <section className={`panel stack ${disponiveis ? "reward-ready" : ""}`}>
+      <h2>Recompensas</h2>
+      {disponiveis > 0 && <p className="inline-icon"><Gift size={19} /> {disponiveis === 1 ? "1 recompensa disponÃ­vel" : `${disponiveis} recompensas disponÃ­veis`}</p>}
+      {premios.length === 0 && <Vazio texto="Nenhuma recompensa liberada ainda." />}
+      {premios.map(p => <article className="list-row" key={p.id}><div>
+        <strong>{p.premio}</strong>
+        <p className="muted">{p.resgatadoEm ? `Utilizada em ${dataHora(p.resgatadoEm)}` : p.agendamentoId ? "Vinculada a um agendamento" : "DisponÃ­vel para agendar"}</p>
+      </div>{cliente && !p.resgatadoEm && !p.agendamentoId && <Link className="button button--neutro"
+        to={`/agendar?servico=${p.servicoId}&premio=${p.id}`}>Usar recompensa <ArrowRight size={17} /></Link>}</article>)}
+    </section>
+    <section className="panel stack">
+      <h2>HistÃ³rico de crÃ©ditos</h2>
+      {creditos.length === 0 && <Vazio texto="Nenhum atendimento pontuou ainda." />}
+      {creditos.map(c => <div key={c.id} className="list-row"><span>{dataHora(c.criadoEm)}</span>
+        <strong className="accent">+{c.quantidade} atendimento</strong></div>)}
+    </section>
+  </div>;
+}
+
+export default function FidelidadePage() {
+  const c = useConsulta<Cartao>("/fidelidade");
+  return <><Titulo titulo="Minha fidelidade" detalhe="Acompanhe seu progresso e use suas recompensas ao agendar." />
+    <Aviso erro={c.erro} carregando={c.carregando} />{c.dados && <CartaoFidelidade cartao={c.dados} cliente />}</>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\Home.tsx =====
+import { useState } from "react";
+import { ArrowRight, CalendarDays, Clock3, Gift, MapPin, Phone, Scissors, UserRound } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useMarca } from "../components/useMarca";
+import { Aviso, Vazio } from "../components/Interface";
+import { FotoEditorial, Vitrine } from "../components/Experiencia";
+import { fotoDe, useFotos } from "../components/FotosPublicas";
+import { dataHora, instanteAgenda } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import { obterSessao, temPapel } from "../services/auth";
+import { aberturaDemo, fotoServico, fotoProfissional, galeriaDemo } from "../services/fotosDemo";
+import { BuscaVitrine, buscaVitrine, CardProfissional, CardServico } from "./VitrinePages";
+import type { Agendamento, Barbeiro, Cartao, ExpedientePublico, Servico } from "../types/Barbearia";
+
+const semana = [
+  ["MONDAY", "Segunda"], ["TUESDAY", "TerÃ§a"], ["WEDNESDAY", "Quarta"], ["THURSDAY", "Quinta"],
+  ["FRIDAY", "Sexta"], ["SATURDAY", "SÃ¡bado"], ["SUNDAY", "Domingo"],
+];
+const lembrarAbertura = () => localStorage.setItem("studio-abertura-v3", "vista");
+
+export default function Home() {
+  const { marca, erro } = useMarca();
+  const { pathname } = useLocation();
+  const servicos = useConsulta<Servico[]>("/publico/servicos");
+  const profissionais = useConsulta<Barbeiro[]>("/publico/barbeiros");
+  const expediente = useConsulta<ExpedientePublico[]>("/publico/expediente");
+  const fotos = useFotos();
+  const sessao = obterSessao();
+  const cliente = temPapel("CLIENTE");
+  const equipe = temPapel("ADMIN") || temPapel("BARBEIRO");
+  const agenda = useConsulta<Agendamento[]>(cliente ? "/agendamentos" : null);
+  const cartao = useConsulta<Cartao>(cliente && marca?.fidelidadeAtiva ? "/fidelidade" : null);
+  const proximo = agenda.dados?.filter(a => ["RESERVADO", "CONFIRMADO"].includes(a.status) && instanteAgenda(a.inicio) > Date.now()).at(-1);
+  const [busca, setBusca] = useState("");
+  const [servico, setServico] = useState("");
+  const lista = servicos.dados?.filter(s => buscaVitrine(busca, s.nome, s.descricao));
+  const pessoas = profissionais.dados?.filter(b => buscaVitrine(busca, b.nome, b.descricao));
+  const selecionado = servicos.dados?.find(s => String(s.id) === servico) ?? servicos.dados?.[0];
+  const horarios = useConsulta<string[]>(selecionado && !equipe ? `/publico/proximos-horarios?servicoId=${selecionado.id}` : null);
+  const fotoAbertura = fotoDe(fotos.dados, "ABERTURA")?.url;
+  const capa = fotoDe(fotos.dados, "CAPA")?.url;
+  const galeria = fotos.dados?.filter(f => f.alvo === "GALERIA") ?? [];
+  const fotosGaleria = galeria.length > 0 ? galeria : fotos.dados && marca?.demonstracao ? galeriaDemo : [];
+  const abrir = pathname === "/" && !sessao && !localStorage.getItem("studio-abertura-v3");
+
+  if (abrir) return <section className="studio-abertura">
+    <FotoEditorial className="abertura-fundo" src={fotoAbertura ?? capa ?? (marca?.demonstracao ? aberturaDemo : undefined)} prioridade />
+    <div className="abertura-marca">{marca?.logo ? <img src={marca.demonstracao && marca.logo === "/api/publico/logo?v=1" ? "/studio/marca.png" : marca.logo} alt={marca.nome} /> : <strong>{marca?.nome ?? "Studio Soldado do Corte"}</strong>}</div>
+    <div className="abertura-copy">
+      <h1>Seu estilo,<br /><em>no lugar certo.</em></h1>
+      <p>{marca?.descricao || "Corte, barba e cuidado no seu horÃ¡rio."}</p>
+      <div className="abertura-acoes"><Link to="/agendar" className="button button--primario" onClick={lembrarAbertura}><CalendarDays size={19} /> Agendar agora <ArrowRight size={19} /></Link>
+        <Link to="/inicio" className="studio-text-link" onClick={lembrarAbertura}>Conhecer o studio <ArrowRight size={17} /></Link></div>
+      {!fotoAbertura && !capa && marca?.demonstracao && <small>Imagem ilustrativa</small>}
+    </div>
+  </section>;
+
+  return <div className="studio-home">
+    <section className="home-welcome">
+      <div><div className="eyebrow">{marca?.nome ?? "Studio Soldado do Corte"}</div>
+        <h1>{sessao ? `OlÃ¡, ${sessao.nome.trim().split(/\s+/)[0]}` : "Encontre seu prÃ³ximo estilo"}</h1></div>
+      {sessao && <Link to="/perfil" className="icon-btn" aria-label="Minha conta"><UserRound size={22} /></Link>}
+    </section>
+    <Aviso erro={erro} />
+    <BuscaVitrine valor={busca} alterar={setBusca} rotulo="Buscar serviÃ§os ou profissionais" />
+    {!busca.trim() && <>
+      <section className="studio-banner">
+        <FotoEditorial src={capa ?? (marca?.demonstracao ? "/studio/banner.webp" : undefined)} prioridade />
+        <div><h2>Mantenha seu<br />estilo em dia.</h2>
+          <Link to={equipe ? "/agenda" : "/agendar"} className="button button--primario">{equipe ? "Abrir agenda" : "Agendar agora"} <ArrowRight size={17} /></Link>
+          {!capa && marca?.demonstracao && <small>Imagem ilustrativa</small>}
+        </div>
+      </section>
+      {proximo && <Link to="/meus-horarios" className="panel studio-inline-card">
+        <span className="large-icon"><CalendarDays size={22} /></span>
+        <span><small className="accent">Seu prÃ³ximo atendimento</small><strong>{proximo.servico} Â· {dataHora(proximo.inicio)}</strong><small className="muted">Com {proximo.barbeiro}</small></span>
+        <ArrowRight size={18} /></Link>}
+    </>}
+    <section className="stack" id="catalogo">
+      <div className="section-heading"><h2>ServiÃ§os</h2><Link to="/catalogo" className="studio-text-link">Ver todos <ArrowRight size={15} /></Link></div>
+      <Aviso erro={servicos.erro} carregando={servicos.carregando} />
+      {marca?.demonstracao && <p className="demo-caption">PreÃ§os e fotos ilustrativos</p>}
+      {lista?.length === 0 && <Vazio texto="Nenhum serviÃ§o encontrado." />}
+      {!!lista?.length && <>
+        <div className="service-categories">{lista.map(s => <button type="button" key={s.id}
+          onClick={() => setServico(String(s.id))} aria-pressed={selecionado?.id === s.id}><Scissors size={20} />{s.nome}</button>)}</div>
+        <Vitrine titulo="serviÃ§os">{lista.map(s => <CardServico s={s} key={s.id} foto={fotoServico(fotos.dados, s, marca?.demonstracao)} />)}</Vitrine>
+      </>}
+    </section>
+    {!equipe && selecionado && !busca.trim() && <section className="panel stack disponibilidade-home">
+      <div className="section-heading"><h2>PrÃ³ximos horÃ¡rios</h2><Clock3 size={20} className="accent" /></div>
+      <p className="muted">{selecionado.nome} Â· qualquer profissional</p>
+      <Aviso erro={horarios.erro} carregando={horarios.carregando} />
+      {horarios.dados?.length === 0 && <p className="muted">Nenhum horÃ¡rio encontrado nos prÃ³ximos 14 dias.</p>}
+      <div className="slot-links">{horarios.dados?.map(h => <Link className="button button--neutro" key={h}
+        to={`/agendar?servico=${selecionado.id}&profissional=qualquer&dia=${h.slice(0, 10)}&horario=${encodeURIComponent(h)}`}>{dataHora(h)}</Link>)}</div>
+    </section>}
+    <section className="stack">
+      <div className="section-heading"><h2>Profissionais</h2><Link className="studio-text-link" to="/equipe">Ver equipe <ArrowRight size={15} /></Link></div>
+      <Aviso erro={profissionais.erro} carregando={profissionais.carregando} />
+      {marca?.demonstracao && <p className="demo-caption">Perfis e fotos de demonstraÃ§Ã£o</p>}
+      {pessoas?.length === 0 && <Vazio texto="Nenhum profissional encontrado." />}
+      {!!pessoas?.length && <Vitrine titulo="profissionais">{pessoas.map(b =>
+        <CardProfissional b={b} key={b.id} foto={fotoProfissional(fotos.dados, b, marca?.demonstracao)} />)}</Vitrine>}
+    </section>
+    {!busca.trim() && <>
+      {marca?.fidelidadeAtiva && !equipe && <Link className="panel studio-inline-card home-fidelidade" to="/fidelidade">
+        <span className="large-icon"><Gift size={24} /></span><span><strong>CartÃ£o fidelidade</strong>
+          <small>{cartao.dados ? `${cartao.dados.progresso} de ${cartao.dados.meta} concluÃ­dos` : `A cada ${marca.meta} atendimentos elegÃ­veis, ganhe ${marca.nomePremio}.`}</small></span>
+        <ArrowRight size={18} /></Link>}
+      <section className="stack"><div className="section-heading"><h2>Galeria</h2><Link className="studio-text-link" to="/galeria">Ver galeria <ArrowRight size={15} /></Link></div>
+        {fotosGaleria.length > 0 && <Vitrine titulo="galeria">{fotosGaleria.map(f => <Link key={f.id} to="/galeria" className="studio-card studio-card--galeria">
+          <FotoEditorial src={f.url} /><span>{f.legenda || "Ver galeria"}</span></Link>)}</Vitrine>}
+        {!galeria.length && marca?.demonstracao && <p className="demo-caption">Imagens ilustrativas</p>}
+      </section>
+      <details className="panel studio-info"><summary>Expediente e contato</summary>
+        <div className="contact-v2"><div className="stack"><h2>Expediente</h2><Aviso erro={expediente.erro} carregando={expediente.carregando} />
+          {expediente.dados?.length === 0 && <p className="muted">Expediente ainda nÃ£o publicado.</p>}
+          <dl className="hours-list">{semana.map(([chave, nome]) => {
+            const faixas = expediente.dados?.filter(f => f.dia === chave).sort((a, b) => a.inicio.localeCompare(b.inicio)) ?? [];
+            return faixas.length ? <div key={chave}><dt>{nome}</dt><dd>{faixas.map(f => f.inicio.slice(0, 5) + " â€“ " + f.fim.slice(0, 5)).join(" Â· ")}</dd></div> : null;
+          })}</dl></div>
+          {(marca?.endereco || marca?.telefone || marca?.whatsapp || marca?.instagram) && <div className="stack"><h2>Contato</h2>
+            {marca.endereco && <p className="inline-icon"><MapPin size={18} /> {marca.endereco}</p>}
+            {marca.telefone && <p className="inline-icon"><Phone size={18} /> {marca.telefone}</p>}
+            {marca.whatsapp && <a className="studio-text-link" href={`https://wa.me/${marca.whatsapp}`}>WhatsApp</a>}
+            {marca.instagram && <a className="studio-text-link" href={`https://www.instagram.com/${marca.instagram}/`}>Instagram</a>}
+          </div>}</div>
+      </details>
+    </>}
+  </div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\LoginPage.tsx =====
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowRight, Scissors } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { salvarSessao, type Sessao } from "../services/auth";
+import { mensagem } from "../services/formato";
+import Botao from "../components/Botao";
+import { Aviso, Campo } from "../components/Interface";
+import { useMarca } from "../components/useMarca";
+
+export default function LoginPage({ cadastro = false }: { cadastro?: boolean }) {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const { marca } = useMarca();
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault();
+    setOcupado(true); setErro("");
+    try {
+      if (cadastro) await api.post("/cadastro", { nome, email, username, senha });
+      const { data } = await api.post<Sessao>("/login", { username, senha });
+      salvarSessao(data);
+      const equipe = data.permissoes.some(p => p === "ADMIN" || p === "BARBEIRO");
+      navigate(equipe ? (data.permissoes.includes("ADMIN") ? "/painel" : "/agenda") : state?.destino ?? "/meus-horarios", { replace: true });
+    } catch (e) { setErro(mensagem(e)); }
+    finally { setOcupado(false); }
+  }
+
+  return <section className="auth-wrap">
+    <form onSubmit={enviar} className="panel auth-card">
+      {marca?.logo ? <img className="auth-logo" src={marca.demonstracao && marca.logo === "/api/publico/logo?v=1" ? "/studio/marca.png" : marca.logo} alt={marca.nome} /> : <span className="large-icon"><Scissors size={26} /></span>}
+      <h1>{cadastro ? "Crie sua conta" : "Entre na sua conta"}</h1>
+      <p className="muted">{cadastro ? "Agende e acompanhe seus prÃ³ximos atendimentos." : marca?.nome}</p>
+      <Aviso erro={erro} />
+      {cadastro && <>
+        <Campo nome="Nome"><input autoComplete="name" value={nome} required maxLength={100} onChange={e => setNome(e.target.value)} /></Campo>
+        <Campo nome="E-mail"><input autoComplete="email" type="email" value={email} required onChange={e => setEmail(e.target.value)} /></Campo>
+      </>}
+      <Campo nome="UsuÃ¡rio"><input autoComplete="username" autoCapitalize="none" value={username} required
+        minLength={3} maxLength={40} onChange={e => setUsername(e.target.value)} /></Campo>
+      <Campo nome="Senha"><input autoComplete={cadastro ? "new-password" : "current-password"} type="password"
+        value={senha} required minLength={cadastro ? 8 : undefined} maxLength={72} onChange={e => setSenha(e.target.value)} /></Campo>
+      <Botao type="submit" disabled={ocupado}>{ocupado ? "Aguardeâ€¦" : cadastro ? "Cadastrar" : "Entrar"} <ArrowRight size={17} /></Botao>
+      <p className="auth-link">{cadastro ? "JÃ¡ tem uma conta?" : "Primeiro acesso?"}{" "}
+        <Link to={cadastro ? "/login" : "/cadastro"} state={state}>{cadastro ? "Entre" : "Cadastre-se"}</Link></p>
+    </form>
+  </section>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\MarcaPage.tsx =====
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, FormEvent } from "react";
+import { ImagePlus } from "lucide-react";
+import api from "../services/api";
+import { mensagem } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import { useMarca } from "../components/useMarca";
+import { Aviso, Campo, Titulo } from "../components/Interface";
+import { fotoDe, useFotos } from "../components/FotosPublicas";
+import { FotoEditorial } from "../components/Experiencia";
+import { interiorDemo } from "../services/fotosDemo";
+import FotosAdmin from "../components/FotosAdmin";
+import Botao from "../components/Botao";
+import type { Marca, Servico } from "../types/Barbearia";
+
+function FormMarca({ inicial }: { inicial: Marca }) {
+  const [marca, setMarca] = useState(inicial);
+  const [arquivo, setArquivo] = useState<File>();
+  const [preview, setPreview] = useState<string>();
+  const anterior = useRef<string>(undefined);
+  const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
+  const [ocupado, setOcupado] = useState(false);
+  const { atualizar } = useMarca();
+  const fotos = useFotos();
+  const servicos = useConsulta<Servico[]>("/servicos");
+
+  useEffect(() => () => {
+    if (anterior.current) URL.revokeObjectURL(anterior.current);
+  }, []);
+
+  function escolherLogo(imagem?: File) {
+    if (anterior.current) URL.revokeObjectURL(anterior.current);
+    anterior.current = imagem ? URL.createObjectURL(imagem) : undefined;
+    setArquivo(imagem);
+    setPreview(anterior.current);
+  }
+
+  function alterar<K extends keyof Marca>(chave: K, valor: Marca[K]) {
+    setMarca(m => ({ ...m, [chave]: valor }));
+  }
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setOcupado(true); setFeedback({});
+    try {
+      const { data } = await api.put<Marca>("/barbearia", marca);
+      atualizar(data); setMarca(data); setFeedback({ sucesso: "ConfiguraÃ§Ãµes atualizadas." });
+    } catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setOcupado(false); }
+  }
+  async function logo(remover = false) {
+    if (!arquivo && !remover) return;
+    setOcupado(true); setFeedback({});
+    try {
+      const form = new FormData();
+      if (arquivo) form.append("arquivo", arquivo);
+      const { data } = remover ? await api.delete<Marca>("/barbearia/logo") : await api.post<Marca>("/barbearia/logo", form);
+      atualizar(data); alterar("logo", data.logo); escolherLogo();
+      setFeedback({ sucesso: remover ? "Logotipo removido." : "Logotipo atualizado." });
+    } catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setOcupado(false); }
+  }
+
+  return <div className="stack">
+    <Aviso {...feedback} />
+    <div className="panel stack">
+      <h2>Logotipo</h2>
+      {(preview || marca.logo) && <img className="logo-preview" src={preview || marca.logo || undefined} alt="PrÃ©via do logotipo" />}
+      <Campo nome="Arquivo PNG ou JPEG de atÃ© 2 MB"><input key={marca.logo} type="file" accept="image/jpeg,image/png"
+        onChange={e => escolherLogo(e.target.files?.[0])} /></Campo>
+      <div className="flex flex-wrap gap-2"><Botao onClick={() => void logo()} disabled={ocupado || !arquivo}><ImagePlus size={18} /> Enviar imagem</Botao>
+        {marca.logo && <Botao variante="perigo" onClick={() => void logo(true)} disabled={ocupado}>Remover logotipo</Botao>}</div>
+    </div>
+    <form className="panel form-stack" onSubmit={salvar}>
+      <div className="stack"><h2>PrÃ©via da identidade</h2>
+        <div className="studio-banner brand-preview" style={{ "--gold": marca.corDestaque, "--base": marca.corFundo } as CSSProperties}>
+          <FotoEditorial src={fotoDe(fotos.dados, "CAPA")?.url ?? (marca.demonstracao ? interiorDemo : undefined)} />
+          <div>{(preview || marca.logo) && <img className="auth-logo" src={preview ?? marca.logo ?? undefined} alt="" />}
+            <h3>{marca.nome || "Nome comercial"}</h3>{marca.descricao && <p>{marca.descricao}</p>}
+            <span className="button button--primario">Agendar agora</span>
+          </div>
+        </div>
+      </div>
+      <h2>Dados da barbearia</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo nome="Nome comercial"><input required maxLength={100} value={marca.nome} onChange={e => alterar("nome", e.target.value)} /></Campo>
+        <Campo nome="ApresentaÃ§Ã£o"><input maxLength={220} value={marca.descricao ?? ""} onChange={e => alterar("descricao", e.target.value)} /></Campo>
+        <Campo nome="EndereÃ§o"><input maxLength={220} value={marca.endereco ?? ""} onChange={e => alterar("endereco", e.target.value)} /></Campo>
+        <Campo nome="Telefone comercial"><input maxLength={40} type="tel" value={marca.telefone ?? ""} onChange={e => alterar("telefone", e.target.value)} /></Campo>
+        <Campo nome="WhatsApp com cÃ³digo do paÃ­s"><input maxLength={15} inputMode="numeric" placeholder="Somente nÃºmeros"
+          value={marca.whatsapp ?? ""} onChange={e => alterar("whatsapp", e.target.value.replace(/\D/g, ""))} /></Campo>
+        <Campo nome="UsuÃ¡rio do Instagram"><input maxLength={30} value={marca.instagram ?? ""}
+          onChange={e => alterar("instagram", e.target.value.replace(/^@/, ""))} /></Campo>
+        <Campo nome="Cor de destaque"><input type="color" value={marca.corDestaque} onChange={e => alterar("corDestaque", e.target.value)} /></Campo>
+        <Campo nome="Cor de fundo"><input type="color" value={marca.corFundo} onChange={e => alterar("corFundo", e.target.value)} /></Campo>
+        <Campo nome="Prazo do cliente para alterar reserva (minutos)"><input type="number" min={0} max={10080} required
+          value={marca.antecedenciaMinutos} onChange={e => alterar("antecedenciaMinutos", e.target.valueAsNumber || 0)} /></Campo>
+        <label className="check-field"><input type="checkbox" checked={marca.demonstracao}
+          onChange={e => alterar("demonstracao", e.target.checked)} /> Identificar dados como demonstraÃ§Ã£o</label>
+      </div>
+      <h2>Programa de fidelidade</h2>
+      <label className="check-field"><input type="checkbox" checked={marca.fidelidadeAtiva}
+        onChange={e => alterar("fidelidadeAtiva", e.target.checked)} /> Habilitar programa</label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo nome="Atendimentos para liberar uma recompensa"><input type="number" min={1} max={100} required
+          value={marca.meta || ""} onChange={e => alterar("meta", e.target.valueAsNumber || 0)} /></Campo>
+        <Campo nome="ServiÃ§o da recompensa"><select required={marca.fidelidadeAtiva} value={marca.premioId ?? ""}
+          onChange={e => alterar("premioId", e.target.value ? Number(e.target.value) : null)}>
+          <option value="">Selecione um serviÃ§o</option>
+          {servicos.dados?.filter(s => s.ativo).map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}</select></Campo>
+      </div>
+      <Aviso erro={servicos.erro} /><p className="muted">Defina quais serviÃ§os geram crÃ©ditos no menu ServiÃ§os.</p>
+      <Botao type="submit" disabled={ocupado}>Salvar configuraÃ§Ãµes</Botao>
+    </form>
+    <section className="panel stack"><h2>Foto da abertura</h2><FotosAdmin alvo="ABERTURA" /></section>
+    <section className="panel stack"><h2>Foto da capa</h2><FotosAdmin alvo="CAPA" alterou={fotos.recarregar} /></section>
+    <section className="panel stack"><h2>Galeria de trabalhos</h2><FotosAdmin alvo="GALERIA" /></section>
+  </div>;
+}
+
+export default function MarcaPage() {
+  const { marca, erro } = useMarca();
+  return <><Titulo titulo="Marca e fidelidade" detalhe="Personalize esta instalaÃ§Ã£o da barbearia." />
+    {marca ? <FormMarca inicial={marca} /> : <Aviso erro={erro} carregando={!erro} />}</>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\PainelPage.tsx =====
+import { ArrowRight, CalendarDays, CalendarPlus, CheckCircle2, Clock3, Scissors, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Aviso, Titulo, Vazio } from "../components/Interface";
+import { data, hoje, hora, instanteAgenda, statusTexto } from "../services/formato";
+import { useAgora } from "../services/useAgora";
+import { useConsulta } from "../services/useConsulta";
+import type { Agendamento, Barbeiro } from "../types/Barbearia";
+
+export default function PainelPage() {
+  const dia = hoje();
+  const agora = useAgora();
+  const agenda = useConsulta<Agendamento[]>(`/agendamentos?data=${dia}`, 5000);
+  const equipe = useConsulta<Barbeiro[]>("/publico/barbeiros");
+  const proximos = useConsulta<Agendamento[]>("/agendamentos/proximos", 5000);
+  const proximosHoje = agenda.dados?.filter(a => instanteAgenda(a.inicio) > agora && ["RESERVADO", "CONFIRMADO"].includes(a.status));
+  const indicadores = [
+    { nome: "Agendamentos", valor: agenda.dados?.length, Icone: CalendarDays },
+    { nome: "PrÃ³ximos hoje", valor: proximosHoje?.length, Icone: Clock3 },
+    { nome: "ConcluÃ­dos", valor: agenda.dados?.filter(a => a.status === "CONCLUIDO").length, Icone: CheckCircle2 },
+    { nome: "Cancelados", valor: agenda.dados?.filter(a => a.status === "CANCELADO").length, Icone: XCircle },
+    { nome: "Profissionais ativos", valor: equipe.dados?.length, Icone: Scissors },
+  ];
+  return <div className="studio-dashboard stack">
+    <Titulo titulo="VisÃ£o geral" detalhe={data(dia)} acao={<Link to="/agendar" className="button button--primario"><CalendarPlus size={18} /> Nova reserva</Link>} />
+    <Aviso erro={agenda.erro || equipe.erro || proximos.erro} carregando={agenda.carregando || equipe.carregando || proximos.carregando} />
+    <div className="dashboard-metricas">{indicadores.map(({ nome, valor, Icone }) => <article className="panel" key={nome}>
+      <Icone size={20} className="accent" /><strong>{valor ?? "â€”"}</strong><span className="muted">{nome}</span>
+    </article>)}</div>
+    <section className="panel stack">
+      <div className="section-heading"><h2>PrÃ³ximos atendimentos</h2><Link className="studio-text-link" to="/agenda">Ver agenda <ArrowRight size={15} /></Link></div>
+      {proximos.dados?.length === 0 && <Vazio texto="Nenhum atendimento agendado para os prÃ³ximos sete dias." />}
+      {proximos.dados?.map(a => <Link to={`/agenda?data=${a.inicio.slice(0, 10)}`} className="dashboard-linha" key={a.id}>
+        <strong>{hora(a.inicio)}<small>{data(a.inicio)}</small></strong><span>{a.cliente}<small>{a.servico} Â· {a.barbeiro}</small></span>
+        <span className={`status status--${a.status.toLowerCase()}`}>{statusTexto[a.status]}</span>
+      </Link>)}
+    </section>
+    <div className="dashboard-atalhos">
+      <Link className="panel studio-text-link" to="/clientes">Clientes <ArrowRight size={16} /></Link>
+      <Link className="panel studio-text-link" to="/profissionais">Profissionais <ArrowRight size={16} /></Link>
+      <Link className="panel studio-text-link" to="/marca">PersonalizaÃ§Ã£o <ArrowRight size={16} /></Link>
+    </div>
+  </div>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\PerfilPage.tsx =====
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowRight, CalendarDays, Gift, UserRound } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Aviso, Campo, Titulo } from "../components/Interface";
+import Botao from "../components/Botao";
+import api from "../services/api";
+import { sair, obterSessao, salvarSessao, temPapel } from "../services/auth";
+import { dataHora, instanteAgenda, mensagem, statusTexto } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import type { Agendamento, Cartao } from "../types/Barbearia";
+import type { Usuario } from "../types/Usuario";
+
+function FormPerfil({ u }: { u: Usuario }) {
+  const [nome, setNome] = useState(u.nome);
+  const [email, setEmail] = useState(u.email);
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
+  const [ocupado, setOcupado] = useState(false);
+  const navigate = useNavigate();
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setOcupado(true); setFeedback({});
+    try {
+      await api.put("/perfil", { nome, email, senhaAtual, novaSenha });
+      if (novaSenha) { sair(); navigate("/login", { replace: true }); return; }
+      const sessao = obterSessao();
+      if (sessao) salvarSessao({ ...sessao, nome });
+      setFeedback({ sucesso: "Perfil atualizado." });
+    } catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setOcupado(false); }
+  }
+  return <form className="panel form-stack form-narrow" onSubmit={salvar}>
+    <Aviso {...feedback} />
+    <Campo nome="UsuÃ¡rio"><input value={u.username} readOnly /></Campo>
+    <Campo nome="Nome"><input value={nome} onChange={e => setNome(e.target.value)} required maxLength={100} /></Campo>
+    <Campo nome="E-mail"><input value={email} onChange={e => setEmail(e.target.value)} required type="email" /></Campo>
+    <h2>Alterar senha</h2>
+    <Campo nome="Senha atual"><input value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} type="password"
+      autoComplete="current-password" required={Boolean(novaSenha)} maxLength={72} /></Campo>
+    <Campo nome="Nova senha"><input value={novaSenha} onChange={e => setNovaSenha(e.target.value)} type="password"
+      autoComplete="new-password" minLength={8} maxLength={72} /></Campo>
+    <Botao type="submit" disabled={ocupado}>Salvar perfil</Botao>
+  </form>;
+}
+
+export default function PerfilPage() {
+  const u = useConsulta<Usuario>("/perfil");
+  const cliente = temPapel("CLIENTE");
+  const ag = useConsulta<Agendamento[]>(cliente ? "/agendamentos" : null);
+  const cartao = useConsulta<Cartao>(cliente ? "/fidelidade" : null);
+  const proximos = ag.dados?.filter(a => ["RESERVADO", "CONFIRMADO"].includes(a.status) && instanteAgenda(a.inicio) > Date.now());
+  const proximo = proximos?.at(-1);
+  const ultimos = ag.dados?.filter(a => !proximos?.some(p => p.id === a.id)).slice(0, 2);
+  const navegar = useNavigate();
+  return <section className="studio-page studio-account stack"><Titulo titulo="Minha conta" />
+    <Aviso erro={u.erro || ag.erro || cartao.erro} carregando={u.carregando || ag.carregando || cartao.carregando} />
+    {u.dados && <div className="panel studio-inline-card"><span className="large-icon"><UserRound size={22} /></span>
+      <span><strong>{u.dados.nome}</strong><small className="muted">{u.dados.email}</small></span></div>}
+    {cliente && <>
+      <section className="panel stack">
+        <div className="section-heading"><h2>PrÃ³ximo atendimento</h2><Link className="studio-text-link" to="/meus-horarios">Meus horÃ¡rios <ArrowRight size={15} /></Link></div>
+        {proximo ? <div className="studio-inline-card"><CalendarDays size={20} className="accent" /><span><strong>{proximo.servico}</strong>
+          <small>{dataHora(proximo.inicio)} Â· {proximo.barbeiro}</small></span><span className="status">{statusTexto[proximo.status]}</span></div>
+          : <p className="muted">VocÃª ainda nÃ£o tem um prÃ³ximo horÃ¡rio.</p>}
+      </section>
+      {!!ultimos?.length && <section className="panel stack"><h2>HistÃ³rico recente</h2>{ultimos.map(a => <div className="list-row" key={a.id}>
+        <span><strong>{a.servico}</strong><p className="muted">{dataHora(a.inicio)}</p></span><span className="status">{statusTexto[a.status]}</span>
+      </div>)}</section>}
+      {cartao.dados && <Link to="/fidelidade" className="panel studio-inline-card"><span className="large-icon"><Gift size={20} /></span>
+        <span><strong>Fidelidade</strong><small>{cartao.dados.progresso} de {cartao.dados.meta} atendimentos elegÃ­veis</small></span><ArrowRight size={17} /></Link>}
+    </>}
+    {u.dados && <details className="panel studio-info ajustes-conta"><summary>Editar dados e senha</summary><FormPerfil u={u.dados} /></details>}
+    <Botao variante="neutro" onClick={async () => {
+      try { await api.post("/logout"); } catch { /* A sessÃ£o local ainda Ã© encerrada. */ } finally { sair(); navegar("/login", { replace: true }); }
+    }}>Sair da conta</Botao>
+  </section>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\PermissaoDetailPage.tsx =====
+import { Link, useParams } from "react-router-dom";
+import { Aviso, Titulo } from "../components/Interface";
+import { useConsulta } from "../services/useConsulta";
+import type { Permissao } from "../types/Permissao";
+
+export default function PermissaoDetailPage() {
+  const { id } = useParams();
+  const p = useConsulta<Permissao>(`/permissoes/${id}`);
+  return <><Titulo titulo={p.dados?.nome ?? "PermissÃ£o"}
+    acao={<Link className="button button--neutro" to="/permissoes">Voltar Ã s permissÃµes</Link>} />
+    <Aviso erro={p.erro} carregando={p.carregando} />{p.dados && <section className="panel">{p.dados.descricao}</section>}</>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\PermissoesPage.tsx =====
+import { Link } from "react-router-dom";
+import CadastroCrud from "../components/CadastroCrud";
+import type { Permissao } from "../types/Permissao";
+
+export default function PermissoesPage() {
+  return <CadastroCrud<Permissao> titulo="PermissÃµes" descricao="Consulte os perfis do sistema e gerencie permissÃµes adicionais."
+    url="/permissoes" nomeNovo="Nova permissÃ£o" podeRemover={p => !["ADMIN", "BARBEIRO", "CLIENTE"].includes(p.nome)}
+    campos={[{ chave: "nome", nome: "Identificador em maiÃºsculas", obrigatorio: true, tamanho: 30 },
+      { chave: "descricao", nome: "DescriÃ§Ã£o", obrigatorio: true, tamanho: 220 }]}
+    padrao={{ nome: "", descricao: "" }} editar={p => ({ nome: p.nome, descricao: p.descricao })}
+    enviar={v => ({ ...v, nome: String(v.nome).toUpperCase().trim() })}
+    exibir={p => <><h3><Link to={`/permissoes/${p.id}`}>{p.nome}</Link></h3><p className="muted">{p.descricao}</p></>} />;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\UsuarioDetailPage.tsx =====
+import { Link, useParams } from "react-router-dom";
+import { Aviso, Titulo } from "../components/Interface";
+import { useConsulta } from "../services/useConsulta";
+import type { Usuario } from "../types/Usuario";
+
+export default function UsuarioDetailPage() {
+  const { id } = useParams();
+  const u = useConsulta<Usuario>(`/usuarios/${id}`);
+  return <><Titulo titulo={u.dados?.nome ?? "UsuÃ¡rio"} acao={<Link className="button button--neutro" to="/usuarios">Voltar aos usuÃ¡rios</Link>} />
+    <Aviso erro={u.erro} carregando={u.carregando} />
+    {u.dados && <section className="panel stack"><p>UsuÃ¡rio Â· {u.dados.username}</p><p>E-mail Â· {u.dados.email}</p>
+      <p>PermissÃµes Â· {u.dados.permissoes.map(p => p.nome).join(", ")}</p>
+      <Link className="button button--neutro" to={`/atribuir-permissoes?usuario=${u.dados.id}`}>Gerenciar permissÃµes</Link>
+    </section>}</>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\UsuarioPermissoesPage.tsx =====
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
+import api from "../services/api";
+import { mensagem } from "../services/formato";
+import { useConsulta } from "../services/useConsulta";
+import { Aviso, Campo, Titulo } from "../components/Interface";
+import Botao from "../components/Botao";
+import type { Usuario } from "../types/Usuario";
+import type { Permissao } from "../types/Permissao";
+
+function Selecao({ usuario, permissoes }: { usuario: Usuario; permissoes: Permissao[] }) {
+  const [ids, setIds] = useState(usuario.permissoes.map(p => p.id));
+  const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
+  const [ocupado, setOcupado] = useState(false);
+  async function salvar(e: FormEvent) {
+    e.preventDefault(); setOcupado(true);
+    try { await api.put(`/usuarios/${usuario.id}/permissoes`, ids); setFeedback({ sucesso: "PermissÃµes atualizadas." }); }
+    catch (e) { setFeedback({ erro: mensagem(e) }); }
+    finally { setOcupado(false); }
+  }
+  return <form className="panel form-stack" onSubmit={salvar}>
+    <h2>PermissÃµes de {usuario.nome}</h2><Aviso {...feedback} />
+    {permissoes.map(p => <label className="check-field" key={p.id}>
+      <input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(lista =>
+        e.target.checked ? [...lista, p.id] : lista.filter(id => id !== p.id))} /> {p.nome} Â· {p.descricao}
+    </label>)}<Botao type="submit" disabled={!ids.length || ocupado}>Salvar permissÃµes</Botao>
+  </form>;
+}
+
+export default function UsuarioPermissoesPage() {
+  const [params, setParams] = useSearchParams();
+  const id = params.get("usuario");
+  const usuarios = useConsulta<Usuario[]>("/usuarios");
+  const usuario = useConsulta<Usuario>(id ? `/usuarios/${id}/permissoes` : null);
+  const permissoes = useConsulta<Permissao[]>("/permissoes");
+  return <><Titulo titulo="Atribuir permissÃµes" detalhe="Selecione a conta e os perfis de acesso." />
+    <div className="stack">
+      <Aviso erro={usuarios.erro || usuario.erro || permissoes.erro} carregando={usuarios.carregando || usuario.carregando || permissoes.carregando} />
+      <section className="panel"><Campo nome="UsuÃ¡rio"><select value={id ?? ""} onChange={e => setParams(e.target.value ? { usuario: e.target.value } : {})}>
+        <option value="">Selecione uma conta</option>
+        {usuarios.dados?.map(u => <option value={u.id} key={u.id}>{u.nome} ({u.username})</option>)}
+      </select></Campo></section>
+      {usuario.dados && permissoes.dados && <Selecao key={id} usuario={usuario.dados} permissoes={permissoes.dados} />}
+    </div></>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\UsuariosPage.tsx =====
+import { Link } from "react-router-dom";
+import CadastroCrud from "../components/CadastroCrud";
+import Botao from "../components/Botao";
+import type { Usuario } from "../types/Usuario";
+import api from "../services/api";
+import { useState } from "react";
+import { Aviso } from "../components/Interface";
+import { mensagem } from "../services/formato";
+
+function Reativar({ id, aoAtivar }: { id: number; aoAtivar: (msg: string) => void }) {
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  async function ativar() {
+    setOcupado(true); setErro("");
+    try { await api.put(`/usuarios/${id}/ativar`); aoAtivar("Conta reativada."); }
+    catch (e) { setErro(mensagem(e)); }
+    finally { setOcupado(false); }
+  }
+  return <><Aviso erro={erro} /><Botao disabled={ocupado} variante="neutro" onClick={() => void ativar()}>Reativar</Botao></>;
+}
+
+export default function UsuariosPage() {
+  return <CadastroCrud<Usuario> titulo="UsuÃ¡rios" descricao="Gerencie contas de acesso. Novas contas comeÃ§am com o perfil Cliente."
+    url="/usuarios" nomeNovo="Novo usuÃ¡rio" remover="Desativar" podeRemover={u => u.ativo}
+    campos={[{ chave: "nome", nome: "Nome", obrigatorio: true, tamanho: 100 },
+      { chave: "username", nome: "UsuÃ¡rio", obrigatorio: true, tamanho: 40, minimo: 3 },
+      { chave: "email", nome: "E-mail", tipo: "email", obrigatorio: true, tamanho: 150 },
+      { chave: "senha", nome: "Senha (obrigatÃ³ria no cadastro)", tipo: "password", tamanho: 72, minimo: 8 }]}
+    padrao={{ nome: "", username: "", email: "", senha: "" }}
+    editar={u => ({ nome: u.nome, username: u.username, email: u.email, senha: "" })} enviar={v => v}
+    exibir={u => <><h3><Link to={`/usuarios/${u.id}`}>{u.nome}</Link> {!u.ativo && <span className="tag">Inativo</span>}</h3>
+      <p className="muted">{u.username} Â· {u.permissoes.map(p => p.nome).join(", ")}</p></>}
+    extras={(u, recarregar) => !u.ativo && <Reativar id={u.id} aoAtivar={recarregar} />} />;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\pages\VitrinePages.tsx =====
+import { useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, Search } from "lucide-react";
+import { Aviso, Titulo, Vazio } from "../components/Interface";
+import { FotoEditorial, PainelModal } from "../components/Experiencia";
+import { useFotos } from "../components/FotosPublicas";
+import { useMarca } from "../components/useMarca";
+import { dataHora, moeda } from "../services/formato";
+import { fotoProfissional, fotoServico, galeriaDemo } from "../services/fotosDemo";
+import { useConsulta } from "../services/useConsulta";
+import type { Barbeiro, Servico } from "../types/Barbearia";
+
+export function CardServico({ s, foto }: { s: Servico; foto?: string }) {
+  return <Link className="studio-card studio-card--servico" to={`/agendar?servico=${s.id}`}>
+    <FotoEditorial src={foto} />
+    <div className="studio-card-copy"><h3>{s.nome}</h3>
+      <span className="inline-icon muted"><Clock3 size={14} /> {s.duracaoMinutos} min</span>
+      {s.descricao && <p className="muted">{s.descricao}</p>}
+      <span className="studio-card-tail"><strong>{moeda(s.preco)}</strong><span className="round-arrow"><ArrowRight size={17} /></span></span>
+    </div>
+  </Link>;
+}
+
+export function CardProfissional({ b, foto }: { b: Barbeiro; foto?: string }) {
+  return <Link className="studio-card studio-card--pessoa" to={`/equipe/${b.id}`}>
+    <FotoEditorial src={foto} />
+    <div className="studio-card-copy"><h3>{b.nome}</h3><span className="studio-card-tail">
+      <span className="muted">{b.descricao || "Ver disponibilidade"}</span><span className="round-arrow"><ArrowRight size={16} /></span>
+    </span></div>
+  </Link>;
+}
+
+function normalizar(valor: string) { return valor.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim(); }
+export function buscaVitrine(busca: string, nome: string, descricao?: string | null) {
+  return normalizar(nome + " " + (descricao ?? "")).includes(normalizar(busca));
+}
+
+export function BuscaVitrine({ valor, alterar, rotulo }: { valor: string; alterar: (s: string) => void; rotulo: string }) {
+  return <label className="studio-search"><Search size={19} /><input type="search" value={valor} onChange={e => alterar(e.target.value)}
+    placeholder={rotulo} aria-label={rotulo} /></label>;
+}
+
+export function ServicosPublicos() {
+  const { marca } = useMarca();
+  const fotos = useFotos();
+  const servicos = useConsulta<Servico[]>("/publico/servicos");
+  const [busca, setBusca] = useState("");
+  const lista = servicos.dados?.filter(s => buscaVitrine(busca, s.nome, s.descricao));
+  return <section className="studio-page stack">
+    <Titulo titulo="ServiÃ§os" detalhe="Escolha o cuidado certo para o seu estilo." />
+    <BuscaVitrine valor={busca} alterar={setBusca} rotulo="Buscar serviÃ§os" />
+    <Aviso erro={servicos.erro} carregando={servicos.carregando} />
+    {marca?.demonstracao && <p className="muted">PreÃ§os e fotos de demonstraÃ§Ã£o.</p>}
+    {lista?.length === 0 && <Vazio texto="Nenhum serviÃ§o encontrado." />}
+    <div className="catalog-v3">{lista?.map(s => <CardServico s={s} key={s.id} foto={fotoServico(fotos.dados, s, marca?.demonstracao)} />)}</div>
+  </section>;
+}
+
+export function EquipePublica() {
+  const { id } = useParams();
+  const { marca } = useMarca();
+  const fotos = useFotos();
+  const equipe = useConsulta<Barbeiro[]>("/publico/barbeiros");
+  const servicos = useConsulta<Servico[]>("/publico/servicos");
+  const [busca, setBusca] = useState("");
+  const [servico, setServico] = useState("");
+  const b = equipe.dados?.find(p => String(p.id) === id);
+  const selecionado = servicos.dados?.find(s => String(s.id) === servico) ?? servicos.dados?.[0];
+  const proximos = useConsulta<string[]>(b && selecionado ? `/publico/proximos-horarios?barbeiroId=${b.id}&servicoId=${selecionado.id}` : null);
+  if (id && b) return <section className="studio-page perfil-publico stack">
+    <Link to="/equipe" className="studio-text-link"><ArrowLeft size={18} /> Equipe</Link>
+    <FotoEditorial src={fotoProfissional(fotos.dados, b, marca?.demonstracao)} className="perfil-foto" prioridade />
+    <div className="panel stack">
+      <Titulo titulo={b.nome} detalhe={b.descricao ?? undefined} />
+      {marca?.demonstracao && <p className="muted">Perfil de demonstraÃ§Ã£o.</p>}
+      <label className="field">ServiÃ§o para consultar<select value={selecionado?.id ?? ""} onChange={e => setServico(e.target.value)}>
+        {servicos.dados?.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+      </select></label>
+      <h2>PrÃ³ximos horÃ¡rios</h2><Aviso erro={proximos.erro || servicos.erro} carregando={proximos.carregando} />
+      <div className="slot-links">{proximos.dados?.map(h => <Link className="button button--neutro" key={h}
+        to={`/agendar?servico=${selecionado?.id}&profissional=${b.id}&dia=${h.slice(0, 10)}&horario=${encodeURIComponent(h)}`}>{dataHora(h)}</Link>)}</div>
+      {proximos.dados?.length === 0 && <p className="muted">Sem horÃ¡rios nos prÃ³ximos 14 dias para este serviÃ§o.</p>}
+      <Link className="button button--primario" to={`/agendar?profissional=${b.id}`}><CalendarDays size={18} /> Agendar com {b.nome}</Link>
+    </div>
+  </section>;
+  if (id) return <section className="stack"><Aviso erro={equipe.erro} carregando={equipe.carregando} />
+    {equipe.dados && <Vazio texto="Profissional indisponÃ­vel." />} <Link to="/equipe" className="studio-text-link">Ver equipe</Link></section>;
+  const lista = equipe.dados?.filter(p => buscaVitrine(busca, p.nome, p.descricao));
+  return <section className="studio-page stack"><Titulo titulo="Profissionais" detalhe="ConheÃ§a a equipe e consulte a agenda." />
+    <BuscaVitrine valor={busca} alterar={setBusca} rotulo="Buscar profissionais" />
+    <Aviso erro={equipe.erro} carregando={equipe.carregando} />
+    {marca?.demonstracao && <p className="muted">Perfis e fotos de demonstraÃ§Ã£o.</p>}
+    {lista?.length === 0 && <Vazio texto="Nenhum profissional encontrado." />}
+    <div className="catalog-v3 equipe-v3">{lista?.map(p => <CardProfissional b={p} key={p.id} foto={fotoProfissional(fotos.dados, p, marca?.demonstracao)} />)}</div>
+  </section>;
+}
+
+export function GaleriaPage() {
+  const { marca } = useMarca();
+  const fotos = useFotos();
+  const [categoria, setCategoria] = useState("Todas");
+  const [indice, setIndice] = useState<number>();
+  const toque = useRef(0);
+  const publicadas = fotos.dados?.filter(f => f.alvo === "GALERIA") ?? [];
+  const exemplos = fotos.dados && publicadas.length === 0 && marca?.demonstracao;
+  const todas = exemplos ? galeriaDemo : publicadas;
+  const categorias = ["Todas", ...new Set(todas.map(f => f.categoria ?? "Outros"))];
+  const lista = todas.filter(f => categoria === "Todas" || (f.categoria ?? "Outros") === categoria);
+  const ampliada = indice === undefined ? undefined : lista[indice];
+  function mover(delta: number) { setIndice(i => ((i ?? 0) + delta + lista.length) % lista.length); }
+  return <section className="studio-page stack"><Titulo titulo="Galeria" detalhe="Encontre referÃªncias para o seu prÃ³ximo corte." />
+    {exemplos && <p className="muted">Imagens ilustrativas. Os trabalhos publicados pela barbearia aparecem aqui.</p>}
+    <div className="tabs" aria-label="Categorias">{categorias.map(c => <button key={c} type="button"
+      aria-pressed={c === categoria} onClick={() => setCategoria(c)}>{c}</button>)}</div>
+    <Aviso erro={fotos.erro} carregando={fotos.carregando} />
+    {fotos.dados && lista.length === 0 && <Vazio texto="Nenhuma fotografia nesta categoria." />}
+    <div className="gallery-grid">{lista.map((f, i) => <button type="button" className="gallery-item" key={f.id}
+      onClick={() => setIndice(i)}><FotoEditorial src={f.url} /><span>{f.legenda || "Ampliar fotografia"}</span></button>)}</div>
+    {ampliada && <PainelModal titulo={ampliada.legenda || "Fotografia da galeria"} fechar={() => setIndice(undefined)}>
+      <div className="gallery-zoom" onTouchStart={e => { toque.current = e.touches[0].clientX; }}
+        onTouchEnd={e => { const delta = e.changedTouches[0].clientX - toque.current; if (Math.abs(delta) > 45) mover(delta < 0 ? 1 : -1); }}
+        onKeyDown={e => { if (e.key === "ArrowLeft") mover(-1); if (e.key === "ArrowRight") mover(1); }}>
+        <FotoEditorial src={ampliada.url} alt={ampliada.legenda ?? "Foto publicada"} prioridade />
+        <div className="section-heading"><button type="button" className="icon-btn" onClick={() => mover(-1)} aria-label="Foto anterior"><ChevronLeft /></button>
+          <span aria-live="polite">{(indice ?? 0) + 1} / {lista.length}</span>
+          <button type="button" className="icon-btn" onClick={() => mover(1)} aria-label="PrÃ³xima foto"><ChevronRight /></button></div>
+      </div>
+    </PainelModal>}
+  </section>;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\api.ts =====
+import axios from "axios";
+import { obterToken, sair } from "./auth";
+
+const api = axios.create({
+  baseURL: "/api",
+});
+
+api.interceptors.request.use((config) => {
+  const token = obterToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (resposta) => resposta,
+  (erro) => {
+    const url: string = erro?.config?.url ?? "";
+    // 401 em /login Ã© credencial errada, nÃ£o sessÃ£o expirada.
+    if (erro?.response?.status === 401 && !url.includes("/login")) {
+      sair();
+      if (window.location.pathname !== "/login") window.location.assign("/login");
+    }
+    return Promise.reject(erro);
+  }
+);
+
+export default api;
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\auth.ts =====
+// src/services/auth.ts
+const TOKEN = "token";
+const USUARIO = "usuario";
+
+export interface Sessao {
+  token: string;
+  nome: string;
+  permissoes: string[];
+}
+
+export function salvarSessao(sessao: Sessao) {
+  sessionStorage.setItem(TOKEN, sessao.token);
+  sessionStorage.setItem(USUARIO, JSON.stringify(sessao));
+}
+
+export function obterToken(): string | null {
+  return sessionStorage.getItem(TOKEN);
+}
+
+export function obterSessao(): Sessao | null {
+  const usuario = sessionStorage.getItem(USUARIO);
+  if (!usuario) return null;
+
+  try {
+    return JSON.parse(usuario) as Sessao;
+  } catch {
+    return null;
+  }
+}
+
+export function temPapel(papel: string): boolean {
+  const sessao = obterSessao();
+  return sessao ? sessao.permissoes.includes(papel) : false;
+}
+
+export function sair() {
+  sessionStorage.removeItem(TOKEN);
+  sessionStorage.removeItem(USUARIO);
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\formato.ts =====
+import axios from "axios";
+
+export function mensagem(erro: unknown): string {
+  if (axios.isAxiosError<{ erro?: string }>(erro)) {
+    return erro.response?.data?.erro ?? (erro.response?.status === 403
+      ? "VocÃª nÃ£o tem permissÃ£o para esta operaÃ§Ã£o." : "NÃ£o foi possÃ­vel completar a operaÃ§Ã£o. Tente novamente.");
+  }
+  return "NÃ£o foi possÃ­vel completar a operaÃ§Ã£o.";
+}
+
+export const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
+const dataBr = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "medium" });
+const diaSp = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+export function hoje() {
+  const partes = Object.fromEntries(diaSp.formatToParts(new Date()).map(({ type, value }) => [type, value]));
+  return `${partes.year}-${partes.month}-${partes.day}`;
+}
+export const hora = (valor: string) => valor.slice(11, 16);
+export const data = (valor: string) => dataBr.format(new Date(valor.slice(0, 10) + "T15:00:00Z"));
+export const dataHora = (valor: string) => data(valor) + " Ã s " + hora(valor);
+export const instanteAgenda = (valor: string) => new Date(valor + "-03:00").getTime();
+
+export const statusTexto = {
+  RESERVADO: "Reservado", CONFIRMADO: "Confirmado", CONCLUIDO: "ConcluÃ­do",
+  CANCELADO: "Cancelado", FALTOU: "Falta registrada",
+};
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\fotosDemo.ts =====
+import { fotoDe } from "../components/FotosPublicas";
+import type { Barbeiro, Foto, Servico } from "../types/Barbearia";
+
+const pasta = "/studio/";
+const servicos: Record<string, string> = {
+  "Corte clÃ¡ssico": "corte.webp", "Barba": "barba.webp", "Corte + barba": "combo.webp",
+  "Barba alinhada": "barba.webp", "Corte e barba": "combo.webp",
+};
+const profissionais: Record<string, string> = { "Rafa Demo": "rafa.webp", "Luiz Demo": "luiz.webp" };
+export const aberturaDemo = pasta + "abertura.webp";
+export const interiorDemo = pasta + "interior.webp";
+export function fotoServico(fotos: Foto[] | undefined, s: Servico, demo?: boolean) {
+  return fotoDe(fotos, "SERVICO", s.id)?.url ?? (demo && servicos[s.nome] ? pasta + servicos[s.nome] : undefined);
+}
+export function fotoProfissional(fotos: Foto[] | undefined, b: Barbeiro, demo?: boolean) {
+  return fotoDe(fotos, "BARBEIRO", b.id)?.url ?? (demo && profissionais[b.nome] ? pasta + profissionais[b.nome] : undefined);
+}
+
+export const galeriaDemo: Foto[] = [
+  { id: "exemplo-corte", alvo: "GALERIA", cadastroId: null, legenda: "DegradÃª texturizado", categoria: "Cortes", url: pasta + "corte.webp" },
+  { id: "exemplo-barba", alvo: "GALERIA", cadastroId: null, legenda: "Barba desenhada", categoria: "Barba", url: pasta + "barba.webp" },
+  { id: "exemplo-combo", alvo: "GALERIA", cadastroId: null, legenda: "Corte e barba", categoria: "Cortes", url: pasta + "combo.webp" },
+  { id: "exemplo-ambiente", alvo: "GALERIA", cadastroId: null, legenda: "Ambiente de barbearia", categoria: "Ambiente", url: interiorDemo },
+];
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\useAgora.ts =====
+import { useEffect, useState } from "react";
+
+export function useAgora() {
+  const [agora, setAgora] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setAgora(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return agora;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\services\useConsulta.ts =====
+import { useCallback, useEffect, useState } from "react";
+import api from "./api";
+import { mensagem } from "./formato";
+
+export function useConsulta<T>(url: string | null, intervalo = 0) {
+  const [resultado, setResultado] = useState<{ url: string; dados?: T; erro?: string; desatualizado?: boolean }>();
+  const [versao, setVersao] = useState(0);
+  const recarregar = useCallback(() => {
+    if (!intervalo) setResultado(undefined);
+    setVersao(v => v + 1);
+  }, [intervalo]);
+  useEffect(() => {
+    if (!url) return;
+    const endereco = url;
+    const controle = new AbortController();
+    let timer: number | undefined;
+    let consultando = false;
+    async function consultar() {
+      if (consultando || controle.signal.aborted) return;
+      window.clearTimeout(timer);
+      consultando = true;
+      try {
+        const r = await api.get<T>(endereco, { signal: controle.signal, timeout: intervalo ? 10000 : undefined });
+        if (!controle.signal.aborted) setResultado(anterior => intervalo && anterior?.url === endereco && anterior.dados !== undefined && JSON.stringify(anterior.dados) === JSON.stringify(r.data)
+          ? (anterior.desatualizado ? { ...anterior, desatualizado: false } : anterior) : { url: endereco, dados: r.data });
+      } catch (e) {
+        if (!controle.signal.aborted) setResultado(anterior => intervalo && anterior?.url === endereco && anterior.dados !== undefined
+          ? { ...anterior, desatualizado: true } : { url: endereco, erro: mensagem(e) });
+      } finally {
+        consultando = false;
+        if (intervalo && !controle.signal.aborted && !document.hidden) timer = window.setTimeout(reativar, intervalo);
+      }
+    }
+    function reativar() { if (!document.hidden) void consultar(); }
+    void consultar();
+    if (intervalo) {
+      document.addEventListener("visibilitychange", reativar);
+      window.addEventListener("online", reativar);
+    }
+    return () => { controle.abort(); window.clearTimeout(timer); document.removeEventListener("visibilitychange", reativar); window.removeEventListener("online", reativar); };
+  }, [url, versao, intervalo]);
+  const atual = url && resultado?.url === url ? resultado : undefined;
+  return { dados: atual?.dados, erro: atual?.erro, desatualizado: Boolean(atual?.desatualizado), carregando: Boolean(url && !atual), recarregar };
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\types\Barbearia.ts =====
+export interface Marca {
+  nome: string; descricao: string | null; endereco: string | null; telefone: string | null;
+  corDestaque: string; corFundo: string; logo: string | null; demonstracao: boolean;
+  fidelidadeAtiva: boolean; meta: number; premioId: number | null; nomePremio: string | null;
+  antecedenciaMinutos: number;
+  whatsapp: string | null; instagram: string | null;
+}
+export interface Servico {
+  id: number; nome: string; descricao: string | null; preco: number; duracaoMinutos: number;
+  elegivel: boolean; ativo: boolean;
+}
+export interface Barbeiro {
+  id: number; nome: string; descricao: string | null; usuarioId: number | null; ativo: boolean;
+}
+export type Status = "RESERVADO" | "CONFIRMADO" | "CONCLUIDO" | "CANCELADO" | "FALTOU";
+export interface Agendamento {
+  id: number; clienteId: number; cliente: string; barbeiroId: number; barbeiro: string;
+  servicoId: number; servico: string; preco: number; inicio: string; fim: string; status: Status;
+  beneficio: boolean; podeAlterar: boolean;
+}
+export interface Movimento {
+  id: number; tipo: "CREDITO" | "RECOMPENSA"; quantidade: number; premio: string | null;
+  servicoId: number | null; criadoEm: string; resgatadoEm: string | null; agendamentoId: number | null;
+}
+export interface Cartao {
+  ativo: boolean; progresso: number; meta: number; proximoPremio: string | null; historico: Movimento[];
+}
+
+export type AlvoFoto = "ABERTURA" | "CAPA" | "SERVICO" | "BARBEIRO" | "GALERIA";
+export interface Foto { id: string; alvo: AlvoFoto; cadastroId: number | null; legenda: string | null; categoria: string | null; url: string }
+export interface ExpedientePublico { id: number; dia: string; inicio: string; fim: string }
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\types\Permissao.ts =====
+export interface Permissao {
+  id: number;
+  nome: string;
+  descricao: string;
+}
+
+
+===== C:\Users\impla\Downloads\web2-agendamento-barbearia\src\main\frontend\src\types\Usuario.ts =====
+import type { Permissao } from "./Permissao";
+export interface Usuario {
+  id: number; nome: string; username: string; email: string; ativo: boolean; permissoes: Permissao[];
+}
+

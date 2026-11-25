@@ -31,6 +31,8 @@ public class DisponibilidadeService {
     public record EntradaBloqueio(Long barbeiroId, @NotNull LocalDateTime inicio, @NotNull LocalDateTime fim,
                                   @Size(max = 180) String motivo) {}
     public record BloqueioView(Long id, Long barbeiroId, LocalDateTime inicio, LocalDateTime fim, String motivo) {}
+    public record SlotHorario(LocalDateTime horario, boolean disponivel) {}
+
     private record Intervalo(LocalDateTime inicio, LocalDateTime fim) {
         boolean inclui(LocalDateTime de, LocalDateTime ate) {
             return !de.isBefore(inicio) && !ate.isAfter(fim);
@@ -60,6 +62,26 @@ public class DisponibilidadeService {
     }
 
     @Transactional(readOnly = true)
+    public List<SlotHorario> grade(Long servicoId, Long barbeiroId, LocalDate dia) {
+        var s = catalogo.servico(servicoId);
+        if (!s.ativo) return List.of();
+        List<Barbeiro> alvo = barbeiroId == null
+                ? catalogo.barbeirosAtivos()
+                : List.of(catalogo.barbeiro(barbeiroId)).stream().filter(b -> b.ativo).toList();
+        if (alvo.isEmpty()) return List.of();
+
+        var mapa = new TreeMap<LocalDateTime, Boolean>();
+        for (var b : alvo) {
+            for (var slot : gradeBarbeiro(b, dia, s.duracaoMinutos, null)) {
+                mapa.merge(slot.horario(), slot.disponivel(), Boolean::logicalOr);
+            }
+        }
+        return mapa.entrySet().stream()
+                .map(e -> new SlotHorario(e.getKey(), e.getValue()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<LocalDateTime> proximos(Long servicoId, Long barbeiroId, LocalDate aPartir) {
         var hoje = Regra.agora().toLocalDate();
         var primeiroDia = aPartir == null || aPartir.isBefore(hoje) ? hoje : aPartir;
@@ -80,6 +102,13 @@ public class DisponibilidadeService {
     }
 
     public List<LocalDateTime> livres(Barbeiro b, LocalDate dia, int duracao, Long ignorar) {
+        return gradeBarbeiro(b, dia, duracao, ignorar).stream()
+                .filter(SlotHorario::disponivel)
+                .map(SlotHorario::horario)
+                .toList();
+    }
+
+    private List<SlotHorario> gradeBarbeiro(Barbeiro b, LocalDate dia, int duracao, Long ignorar) {
         LocalDateTime agora = Regra.agora();
         if (dia.isBefore(agora.toLocalDate()) || dia.isAfter(agora.toLocalDate().plusDays(90))) return List.of();
         var semana = expedientes.findByDia(dia.getDayOfWeek());
@@ -97,17 +126,17 @@ public class DisponibilidadeService {
         agenda.findByBarbeiroIdAndInicioLessThanAndFimGreaterThan(b.id, fimDia, inicioDia).stream()
                 .filter(a -> !a.id.equals(ignorar) && a.status != Agendamento.Status.CANCELADO && a.status != Agendamento.Status.FALTOU)
                 .map(a -> new Intervalo(a.inicio, a.fim)).forEach(ocupados::add);
-        var horarios = new ArrayList<LocalDateTime>();
+        var slots = new ArrayList<SlotHorario>();
         for (var hora = inicioDia; hora.isBefore(fimDia); hora = hora.plusMinutes(15)) {
             LocalDateTime inicio = hora;
             LocalDateTime fim = inicio.plusMinutes(duracao);
             if (inicio.isAfter(agora) && loja.stream().anyMatch(i -> i.inclui(inicio, fim))
-                    && pessoal.stream().anyMatch(i -> i.inclui(inicio, fim))
-                    && ocupados.stream().noneMatch(i -> i.sobrepoe(inicio, fim))) {
-                horarios.add(inicio);
+                    && pessoal.stream().anyMatch(i -> i.inclui(inicio, fim))) {
+                boolean disponivel = ocupados.stream().noneMatch(i -> i.sobrepoe(inicio, fim));
+                slots.add(new SlotHorario(inicio, disponivel));
             }
         }
-        return horarios;
+        return slots;
     }
 
     @Transactional(readOnly = true)

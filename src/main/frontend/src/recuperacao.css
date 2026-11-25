@@ -1,15 +1,1 @@
-/* Ajustes compatíveis com a estrutura React recuperada. */
-.wordmark-icon { width: 88px; height: 48px; background: transparent; border: 0; flex-shrink: 0; }
-.wordmark-icon img { width: 100%; height: 100%; object-fit: contain; }
-.abertura-marca img { max-width: min(65vw, 230px); object-fit: contain; }
-.studio-banner, .studio-card { box-shadow: none; }
-.studio-card--servico { border-radius: 16px; overflow: hidden; }
-.studio-card--servico .editorial-photo img { object-fit: cover; }
-@media (max-width: 759px) {
-  .wordmark-icon { width: 78px; height: 42px; }
-  .wordmark { gap: 8px; }
-  .wordmark:has(img) > span:last-child { font-size: .78rem; }
-  .studio-banner { min-height: 185px; border-radius: 18px; }
-  .studio-card--servico .studio-card-copy { padding: 12px; }
-}
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+/* Estilos migrados e unificados em src/styles/tokens.css e src/index.css */

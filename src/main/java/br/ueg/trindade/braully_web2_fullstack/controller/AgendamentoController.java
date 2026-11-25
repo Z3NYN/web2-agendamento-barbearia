@@ -12,7 +12,6 @@ import br.ueg.trindade.braully_web2_fullstack.service.*;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AgendamentoController {
     private final AgendaService agenda;
     private final DisponibilidadeService disponibilidade;
@@ -23,21 +22,30 @@ public class AgendamentoController {
     }
 
     @GetMapping("/publico/horarios")
-    public List<LocalDateTime> horarios(@RequestParam Long servicoId, @RequestParam(required = false) Long barbeiroId, @RequestParam LocalDate data) {
+    public List<LocalDateTime> horarios(@RequestParam Long servicoId, @RequestParam(required = false) Long barbeiroId,
+                                        @RequestParam LocalDate data) {
         return disponibilidade.horarios(servicoId, barbeiroId, data);
+    }
+
+    @GetMapping("/publico/grade-horarios")
+    public List<DisponibilidadeService.SlotHorario> gradeHorarios(@RequestParam Long servicoId,
+                                                                  @RequestParam(required = false) Long barbeiroId,
+                                                                  @RequestParam LocalDate data) {
+        return disponibilidade.grade(servicoId, barbeiroId, data);
     }
 
     @GetMapping("/publico/proximos-horarios")
     public List<LocalDateTime> proximos(@RequestParam Long servicoId, @RequestParam(required = false) Long barbeiroId,
-                                       @RequestParam(required = false) LocalDate aPartir) {
+                                        @RequestParam(required = false) LocalDate aPartir) {
         return disponibilidade.proximos(servicoId, barbeiroId, aPartir);
     }
 
     @GetMapping("/agendamentos")
     @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
     public List<AgendaService.View> listar(@RequestParam(required = false) LocalDate data,
-                                         @RequestParam(required = false) Long barbeiroId, Authentication auth) {
-        return agenda.listar(auth, data, barbeiroId);
+                                           @RequestParam(required = false) LocalDate ate,
+                                           @RequestParam(required = false) Long barbeiroId, Authentication auth) {
+        return agenda.listar(auth, data, ate, barbeiroId);
     }
 
     @GetMapping("/agendamentos/proximos")
@@ -55,7 +63,7 @@ public class AgendamentoController {
     @GetMapping("/agendamentos/{id}/horarios")
     @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
     public List<LocalDateTime> horarios(@PathVariable Long id, @RequestParam Long barbeiroId,
-                                       @RequestParam LocalDate data, Authentication auth) {
+                                        @RequestParam LocalDate data, Authentication auth) {
         return agenda.horariosReagendamento(id, barbeiroId, data, auth);
     }
 
@@ -68,7 +76,7 @@ public class AgendamentoController {
     @PutMapping("/agendamentos/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
     public AgendaService.View reagendar(@PathVariable Long id, @Valid @RequestBody AgendaService.Reagendar entrada,
-                                      Authentication auth) {
+                                        Authentication auth) {
         return agenda.reagendar(id, entrada, auth);
     }
 

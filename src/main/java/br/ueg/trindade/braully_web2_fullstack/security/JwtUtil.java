@@ -24,12 +24,26 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
+    @Value("${app.demo:true}")
+    private boolean demo;
+
     private SecretKey chave;
 
     @jakarta.annotation.PostConstruct
     void inicializarChave() {
-        chave = secret.isBlank() ? Jwts.SIG.HS256.key().build()
-                : Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        if (secret == null || secret.isBlank()) {
+            if (!demo) {
+                throw new IllegalStateException(
+                        "Para execução sem demonstração, defina SOLDADO_JWT_SECRET com pelo menos 32 bytes.");
+            }
+            chave = Jwts.SIG.HS256.key().build();
+            return;
+        }
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < 32) {
+            throw new IllegalStateException("SOLDADO_JWT_SECRET deve ter pelo menos 32 bytes (256 bits).");
+        }
+        chave = Keys.hmacShaKeyFor(bytes);
     }
 
     public String gerarToken(Usuario usuario) {

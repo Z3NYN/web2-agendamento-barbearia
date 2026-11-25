@@ -13,19 +13,41 @@ function Selecao({ usuario, permissoes }: { usuario: Usuario; permissoes: Permis
   const [ids, setIds] = useState(usuario.permissoes.map(p => p.id));
   const [feedback, setFeedback] = useState<{ erro?: string; sucesso?: string }>({});
   const [ocupado, setOcupado] = useState(false);
+
   async function salvar(e: FormEvent) {
-    e.preventDefault(); setOcupado(true);
-    try { await api.put(`/usuarios/${usuario.id}/permissoes`, ids); setFeedback({ sucesso: "Permissões atualizadas." }); }
-    catch (e) { setFeedback({ erro: mensagem(e) }); }
-    finally { setOcupado(false); }
+    e.preventDefault();
+    setOcupado(true);
+    try {
+      await api.put(`/usuarios/${usuario.id}/permissoes`, ids);
+      setFeedback({ sucesso: "Permissões atualizadas." });
+    } catch (err) {
+      setFeedback({ erro: mensagem(err) });
+    } finally {
+      setOcupado(false);
+    }
   }
-  return <form className="panel form-stack" onSubmit={salvar}>
-    <h2>Permissões de {usuario.nome}</h2><Aviso {...feedback} />
-    {permissoes.map(p => <label className="check-field" key={p.id}>
-      <input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(lista =>
-        e.target.checked ? [...lista, p.id] : lista.filter(id => id !== p.id))} /> {p.nome} · {p.descricao}
-    </label>)}<Botao type="submit" disabled={!ids.length || ocupado}>Salvar permissões</Botao>
-  </form>;
+
+  return (
+    <form className="surface-card form-stack" onSubmit={salvar}>
+      <h2 className="section-title">Permissões de {usuario.nome}</h2>
+      <Aviso {...feedback} />
+      <div className="stack-xs">
+        {permissoes.map(p => (
+          <label className="check-row" key={p.id}>
+            <input
+              type="checkbox"
+              checked={ids.includes(p.id)}
+              onChange={e => setIds(lista => (e.target.checked ? [...lista, p.id] : lista.filter(id => id !== p.id)))}
+            />
+            <span><strong>{p.nome}</strong> · {p.descricao}</span>
+          </label>
+        ))}
+      </div>
+      <div>
+        <Botao type="submit" disabled={!ids.length || ocupado}>{ocupado ? "Salvando…" : "Salvar permissões"}</Botao>
+      </div>
+    </form>
+  );
 }
 
 export default function UsuarioPermissoesPage() {
@@ -34,13 +56,25 @@ export default function UsuarioPermissoesPage() {
   const usuarios = useConsulta<Usuario[]>("/usuarios");
   const usuario = useConsulta<Usuario>(id ? `/usuarios/${id}/permissoes` : null);
   const permissoes = useConsulta<Permissao[]>("/permissoes");
-  return <><Titulo titulo="Atribuir permissões" detalhe="Selecione a conta e os perfis de acesso." />
-    <div className="stack">
-      <Aviso erro={usuarios.erro || usuario.erro || permissoes.erro} carregando={usuarios.carregando || usuario.carregando || permissoes.carregando} />
-      <section className="panel"><Campo nome="Usuário"><select value={id ?? ""} onChange={e => setParams(e.target.value ? { usuario: e.target.value } : {})}>
-        <option value="">Selecione uma conta</option>
-        {usuarios.dados?.map(u => <option value={u.id} key={u.id}>{u.nome} ({u.username})</option>)}
-      </select></Campo></section>
+
+  return (
+    <section className="stack">
+      <Titulo eyebrow="Acessos" titulo="Atribuir permissões" detalhe="Selecione a conta e os perfis de acesso." />
+      <Aviso
+        erro={usuarios.erro || usuario.erro || permissoes.erro}
+        carregando={usuarios.carregando || usuario.carregando || permissoes.carregando}
+      />
+      <section className="surface-card">
+        <Campo nome="Usuário">
+          <select value={id ?? ""} onChange={e => setParams(e.target.value ? { usuario: e.target.value } : {})}>
+            <option value="">Selecione uma conta</option>
+            {usuarios.dados?.map(u => (
+              <option value={u.id} key={u.id}>{u.nome} ({u.username})</option>
+            ))}
+          </select>
+        </Campo>
+      </section>
       {usuario.dados && permissoes.dados && <Selecao key={id} usuario={usuario.dados} permissoes={permissoes.dados} />}
-    </div></>;
+    </section>
+  );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Trash2 } from "lucide-react";
 import type { AlvoFoto, Foto } from "../types/Barbearia";
 import api from "../services/api";
 import { mensagem } from "../services/formato";
@@ -7,7 +7,15 @@ import { useConsulta } from "../services/useConsulta";
 import Botao from "./Botao";
 import { Aviso, Campo } from "./Interface";
 
-export default function FotosAdmin({ alvo, cadastroId, alterou }: { alvo: AlvoFoto; cadastroId?: number; alterou?: () => void }) {
+export default function FotosAdmin({
+  alvo,
+  cadastroId,
+  alterou,
+}: {
+  alvo: AlvoFoto;
+  cadastroId?: number;
+  alterou?: () => void;
+}) {
   const fotos = useConsulta<Foto[]>("/publico/fotos");
   const [arquivo, setArquivo] = useState<File>();
   const [preview, setPreview] = useState("");
@@ -47,36 +55,69 @@ export default function FotosAdmin({ alvo, cadastroId, alterou }: { alvo: AlvoFo
       fotos.recarregar();
       alterou?.();
       setFeedback({ sucesso: remover ? "Foto removida." : "Foto publicada." });
-    } catch (e) { setFeedback({ erro: mensagem(e) }); }
-    finally { setOcupado(false); }
+    } catch (e) {
+      setFeedback({ erro: mensagem(e) });
+    } finally {
+      setOcupado(false);
+    }
   }
 
-  return <div className="stack photo-editor">
-    <Aviso erro={fotos.erro} carregando={fotos.carregando} />
-    <Aviso {...feedback} />
-    {atuais.length > 0 && <div className="grid gap-3 sm:grid-cols-3">{atuais.map(f => <div key={f.id} className="stack">
-      <img className="photo-preview" src={f.url} alt={f.legenda || "Foto publicada"} />
-      <Botao variante="perigo" disabled={ocupado} onClick={() => void gravar(f)}>Remover foto</Botao>
-    </div>)}</div>}
-    <Campo nome="Imagem PNG ou JPEG de até 2 MB"><input ref={input} type="file" accept="image/png,image/jpeg"
-      disabled={ocupado} onChange={e => {
-        const f = e.target.files?.[0];
-        if (f && f.size > 2097152) {
-          setArquivo(undefined);
-          setFeedback({ erro: "Selecione uma imagem de até 2 MB." });
-          e.target.value = "";
-        } else {
-          setArquivo(f);
-          setFeedback({});
-        }
-      }} /></Campo>
-    {arquivo && preview && <img className="photo-preview" src={preview} alt="Prévia local da imagem" />}
-    {alvo === "GALERIA" && <><Campo nome="Categoria da foto"><select value={categoria} onChange={e => setCategoria(e.target.value)}>
-      {["Cortes", "Barba", "Ambiente", "Outros"].map(c => <option key={c}>{c}</option>)}
-    </select></Campo><Campo nome="Descrição da foto"><input value={legenda} maxLength={120}
-      onChange={e => setLegenda(e.target.value)} /></Campo></>}
-    <Botao disabled={!arquivo || ocupado} onClick={() => void gravar()}><ImagePlus size={17} />
-      {ocupado ? "Aguarde…" : atuais.length > 0 && alvo !== "GALERIA" ? "Substituir foto" : "Publicar foto"}
-    </Botao>
-  </div>;
+  return (
+    <div className="stack-sm photo-editor">
+      <Aviso erro={fotos.erro} carregando={fotos.carregando} />
+      <Aviso {...feedback} />
+      {atuais.length > 0 && (
+        <div className="photo-admin-grid">
+          {atuais.map(f => (
+            <div key={f.id} className="photo-admin-item">
+              <img className="photo-preview" src={f.url} alt={f.legenda || "Foto publicada"} />
+              <Botao variante="perigo" compacto disabled={ocupado} onClick={() => void gravar(f)}>
+                <Trash2 size={14} /> Remover
+              </Botao>
+            </div>
+          ))}
+        </div>
+      )}
+      <Campo nome="Imagem PNG ou JPEG de até 2 MB">
+        <input
+          ref={input}
+          type="file"
+          accept="image/png,image/jpeg"
+          disabled={ocupado}
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (f && f.size > 2097152) {
+              setArquivo(undefined);
+              setFeedback({ erro: "Selecione uma imagem de até 2 MB." });
+              e.target.value = "";
+            } else {
+              setArquivo(f);
+              setFeedback({});
+            }
+          }}
+        />
+      </Campo>
+      {arquivo && preview && <img className="photo-preview" src={preview} alt="Prévia local da imagem" />}
+      {alvo === "GALERIA" && (
+        <div className="form-grid-2">
+          <Campo nome="Categoria da foto">
+            <select value={categoria} onChange={e => setCategoria(e.target.value)}>
+              {["Cortes", "Barba", "Ambiente", "Outros"].map(c => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </Campo>
+          <Campo nome="Legenda">
+            <input value={legenda} maxLength={120} onChange={e => setLegenda(e.target.value)} />
+          </Campo>
+        </div>
+      )}
+      <div>
+        <Botao disabled={!arquivo || ocupado} onClick={() => void gravar()}>
+          <ImagePlus size={16} />
+          {ocupado ? "Publicando…" : atuais.length > 0 && alvo !== "GALERIA" ? "Substituir foto" : "Publicar foto"}
+        </Botao>
+      </div>
+    </div>
+  );
 }

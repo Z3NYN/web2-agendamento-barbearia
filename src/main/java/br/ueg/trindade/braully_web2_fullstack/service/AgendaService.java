@@ -2,6 +2,7 @@ package br.ueg.trindade.braully_web2_fullstack.service;
 
 import java.math.BigDecimal;
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.Authentication;
@@ -41,11 +42,26 @@ public class AgendaService {
 
     @Transactional(readOnly = true)
     public List<View> listar(Authentication auth, LocalDate data, Long barbeiro) {
+        return listar(auth, data, null, barbeiro);
+    }
+
+    @Transactional(readOnly = true)
+    public List<View> listar(Authentication auth, LocalDate data, LocalDate ate, Long barbeiro) {
         if (!equipe(auth)) return listarCliente(Identidade.id(auth), false);
-        LocalDate dia = data == null ? Regra.agora().toLocalDate() : data;
-        return agenda.findByInicioGreaterThanEqualAndInicioLessThanOrderByInicioAsc(dia.atStartOfDay(), dia.plusDays(1).atStartOfDay())
-                .stream().filter(a -> (barbeiro == null || a.barbeiro.getId().equals(barbeiro)) && atende(a, auth))
-                .map(a -> view(a, true, 0)).toList();
+        LocalDate inicio = data == null ? Regra.agora().toLocalDate() : data;
+        LocalDate fim = ate == null ? inicio : ate;
+        if (fim.isBefore(inicio)) {
+            throw Regra.invalida("A data final deve ser igual ou posterior à data inicial.");
+        }
+        if (ChronoUnit.DAYS.between(inicio, fim) > 31) {
+            throw Regra.invalida("Consulte no máximo 31 dias por vez.");
+        }
+        return agenda.findByInicioGreaterThanEqualAndInicioLessThanOrderByInicioAsc(
+                        inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay())
+                .stream()
+                .filter(a -> (barbeiro == null || a.barbeiro.getId().equals(barbeiro)) && atende(a, auth))
+                .map(a -> view(a, true, 0))
+                .toList();
     }
 
     @Transactional(readOnly = true)
