@@ -1,0 +1,7 @@
+* text=auto
+*.cmd text eol=crlf
+*.sh text eol=lf
+*.java text eol=lf
+*.tsx text eol=lf
+*.svg text eol=lf
+*.jpg binary

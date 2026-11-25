@@ -1,34 +1,51 @@
-# Java / Maven
+HELP.md
 target/
-*.class
-*.jar
-!**/.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Frontend
-node_modules/
-dist/
-.vite/
-coverage/
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-# Runtime e dados locais
-runtime/
-data/
-backups/
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+/dados/
+/backups/
+/logs/
+/src/main/frontend/dist/
 *.mv.db
 *.trace.db
-*.log
-*.zip
 
-# Credenciais
+node_modules/
+dist/
+runtime/
+*.zip
+*.log
 .env
 .env.*
 !.env.example
 *.pem
 *.key
-
-# IDE / sistema
-.idea/
-.vscode/
-*.iml
-.DS_Store
-Thumbs.db

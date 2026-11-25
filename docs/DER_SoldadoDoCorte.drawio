@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram id="soldado-der" name="Entidades">
+    <mxGraphModel grid="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="usuario" value="&lt;b&gt;Usuario&lt;/b&gt;&lt;br&gt;id, nome, username, senha, email" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="35" y="50" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="permissao" value="&lt;b&gt;Permissao&lt;/b&gt;&lt;br&gt;id, nome, descrição" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="35" y="210" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="fidelidade" value="&lt;b&gt;MovimentoFidelidade&lt;/b&gt;&lt;br&gt;id, cliente, tipo, quantidade, resgate" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="35" y="390" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="barbearia" value="&lt;b&gt;Barbearia&lt;/b&gt;&lt;br&gt;id, nome, marca, cores, meta, prazo" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="395" y="50" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="servico" value="&lt;b&gt;Servico&lt;/b&gt;&lt;br&gt;id, nome, preço, duração, elegível" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="730" y="50" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="barbeiro" value="&lt;b&gt;Barbeiro&lt;/b&gt;&lt;br&gt;id, nome, usuário opcional, ativo" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="395" y="210" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="agendamento" value="&lt;b&gt;Agendamento&lt;/b&gt;&lt;br&gt;id, início, fim, status, preço" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="730" y="210" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="expediente" value="&lt;b&gt;Expediente&lt;/b&gt;&lt;br&gt;id, dia, início, fim" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="395" y="390" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="bloqueio" value="&lt;b&gt;Bloqueio&lt;/b&gt;&lt;br&gt;id, início, fim, motivo" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f7f5f0;strokeColor=#746346;fontColor=#241d12;fontSize=14;">
+          <mxGeometry x="730" y="390" width="244" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" source="usuario" target="permissao" value="N:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" source="usuario" target="barbeiro" value="0..1 : 0..1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" source="usuario" target="agendamento" value="cliente 1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" source="usuario" target="fidelidade" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" source="barbearia" target="servico" value="catálogo 1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" source="barbearia" target="servico" value="prêmio 0..1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" source="barbearia" target="barbeiro" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" source="barbearia" target="expediente" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" source="barbearia" target="bloqueio" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" source="barbeiro" target="agendamento" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" source="servico" target="agendamento" value="1:N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" source="barbeiro" target="expediente" value="0..1 : N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" source="barbeiro" target="bloqueio" value="0..1 : N" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" source="agendamento" target="fidelidade" value="vínculo opcional" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" source="servico" target="fidelidade" value="benefício opcional" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;fontSize=11;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

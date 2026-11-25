@@ -1,0 +1,9 @@
+O runtime do pacote Windows é Azul Zulu CA OpenJDK 21.0.13.0.3+1-LTS x64.
+Os avisos e as licenças originais acompanham a pasta runtime/legal.
+Distribuição upstream:
+https://cdn.azul.com/zulu/bin/zulu21.54.109-ca-jre21.0.13.0.3-win_x64.zip
+Fontes da distribuição OpenJDK da Azul:
+https://www.azul.com/downloads/?package=jdk#zulu
+
+SHA-256 do ZIP upstream
+3a01d4e2eaab87bee5fdccae051fc3dc2c4dd655c04b942aa8ff7a74aab314c4

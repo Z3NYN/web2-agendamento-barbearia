@@ -1,0 +1,69 @@
+STUDIO SOLDADO DO CORTE V3
+Manual de demonstração local para Windows 10/11 de 64 bits (x64)
+
+1. Clique com o botão direito no ZIP e use Extrair Tudo. Abra a pasta extraída.
+2. Execute INICIAR_SISTEMA.cmd. O Java 21 portátil está na pasta runtime.
+   Após a extração, o sistema roda sem baixar dependências.
+3. Aguarde “Started BraullyWeb2FullstackApplication” na janela. Abra
+   http://localhost:8080 no navegador do notebook.
+4. No celular, conecte à mesma rede Wi-Fi do notebook. No Windows, abra
+   o Prompt de Comando, execute ipconfig e copie o Endereço IPv4 do adaptador
+   Wi-Fi. Digite http://IP-DO-NOTEBOOK:8080 no navegador do celular.
+   Se o notebook tiver várias interfaces, use o IP da rede compartilhada.
+   Uma rede local funciona sem acesso à internet. Redes de convidados e
+   redes da faculdade podem isolar os dispositivos. Nesse caso use uma rede
+   privada em que os aparelhos se enxerguem ou apresente no notebook.
+5. Se o notebook funciona e o celular não, confirme o IP, a porta e a rede.
+   No Firewall do Windows, permita o java.exe da pasta runtime\bin em
+   redes privadas, ou adicione uma regra de entrada TCP 8080 para o perfil
+   Privado, escopo Sub-rede local. A regra pode exigir administrador.
+   Use somente credenciais fictícias na demonstração HTTP em rede confiável.
+6. Para desligar, volte à janela do sistema, pressione Ctrl+C e aguarde.
+   Se o Windows perguntar sobre encerrar o arquivo em lotes, confirme.
+
+MIGRAR DA V2
+- Desligue a V2, faça backup e copie a pasta dados para a nova instalação
+  antes de iniciar a V3 pela primeira vez. Mantenha o backup original.
+
+CONTAS FICTÍCIAS
+- Administrador: admin / AdminDemo@2026
+- Cliente: cliente / ClienteDemo@2026
+- Barbeiro: barbeiro / BarbeiroDemo@2026
+- Segundo profissional: luiz / LuizDemo@2026
+
+DEMONSTRAR EM 3 MINUTOS
+- Em Agendar, escolha o serviço, o profissional, a data e o horário.
+  Na revisão, entre como cliente e confirme a seleção recuperada.
+  Confira a reserva em Meus horários. Abra Fidelidade para ver 9/10.
+- Saia, entre como admin e abra Agenda. A demonstração cria um atendimento
+  confirmado e já encerrado cerca de 45 minutos antes da primeira execução.
+  Consulte essa data e use Concluir atendimento. Se a carga inicial ocorreu
+  antes das 00h45 no fuso de Brasília, o atendimento pode estar no dia anterior.
+- Volte à conta cliente. Em Fidelidade, use a recompensa liberada e reserve
+  um Corte clássico gratuito. O total será R$ 0,00. Na agenda, cancelar libera
+  o benefício e concluir registra o uso. Agendamentos futuros só podem ser
+  concluídos após o fim do horário.
+
+BACKUP E REINÍCIO DA DEMONSTRAÇÃO
+- Encerre com Ctrl+C e aguarde. Execute BACKUP_DADOS.cmd para copiar dados
+  a uma pasta com data em backups. Guarde essa cópia fora da pasta se quiser.
+- RESTAURAR_DEMO.cmd move dados para backups após digitar RESTAURAR.
+  Na próxima inicialização, o banco de demonstração é recriado.
+- Para voltar a uma cópia específica, encerre o servidor, mova a pasta
+  dados atual para outro nome e copie o conteúdo da cópia para dados.
+  A estrutura final deve conter dados\barbearia.mv.db. Inicie novamente.
+
+PORTA E INSTALAÇÃO INDEPENDENTE
+- Porta ocupada? No Prompt aberto na pasta extraída, rode
+  set SOLDADO_PORT=8081
+  INICIAR_SISTEMA.cmd
+  e use 8081 também no celular e no firewall. Use portas e pastas de dados
+  distintas para duas instalações rodando no mesmo notebook.
+- A demonstração usa cadastro fictício. Para iniciar uma instalação limpa,
+  copie apenas os arquivos da aplicação para outra pasta, sem dados. Defina
+  SOLDADO_DEMO=false e SOLDADO_ADMIN_PASSWORD com uma senha própria de
+  pelo menos 8 caracteres, inicie e configure Marca, Serviços e Expediente.
+  Use http://localhost para a administração durante o teste local.
+- Para uso real fora do notebook, configure HTTPS e dados comerciais reais.
+  SOLDADO_JWT_SECRET é opcional no ambiente local. Sem ela, a chave é gerada
+  ao iniciar e as sessões antigas expiram após um reinício.
