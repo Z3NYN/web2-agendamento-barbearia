@@ -11,13 +11,13 @@ export function Reveal({
 }: {
   children: ReactNode;
   className?: string;
-  variant?: "up" | "fade" | "scale" | "left";
+  variant?: "up" | "fade" | "scale" | "left" | "clip";
   delay?: number;
   staggerIndex?: number;
   disabled?: boolean;
 }) {
   const { ref, visible } = useScrollReveal<HTMLDivElement>({ disabled });
-  const computedDelay = staggerIndex !== undefined ? delay + Math.min(staggerIndex, 8) * 55 : delay;
+  const computedDelay = staggerIndex !== undefined ? delay + Math.min(staggerIndex, 8) * 70 : delay;
   const style = computedDelay ? ({ "--reveal-delay": `${computedDelay}ms` } as CSSProperties) : undefined;
 
   return (
@@ -33,7 +33,7 @@ export function Reveal({
 
 export function StaggerLine({
   children,
-  delay = 220,
+  delay = 250,
 }: {
   children: ReactNode;
   delay?: number;
@@ -48,7 +48,7 @@ export function StaggerLine({
 export function AnimatedValue({
   value,
   format,
-  duration = 320,
+  duration = 360,
   className = "",
 }: {
   value: number;

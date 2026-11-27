@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Camera } from "lucide-react";
 import FotosAdmin from "../components/FotosAdmin";
 import CadastroCrud from "../components/CadastroCrud";
 import type { DefCampo } from "../components/CadastroCrud";
@@ -22,6 +23,7 @@ export function ServicosPage() {
 
   return (
     <CadastroCrud<Servico>
+      eyebrow="Barbearia"
       titulo="Serviços"
       descricao="Gerencie preços, durações, elegibilidade para fidelidade e fotografias."
       nomeNovo="Novo serviço"
@@ -52,22 +54,26 @@ export function ServicosPage() {
       )}
       exibir={s => (
         <>
-          <div className="inline-title">
-            <h3>{s.nome}</h3>
+          <h3>{s.nome}</h3>
+          {s.descricao && <p className="text-secondary">{s.descricao}</p>}
+        </>
+      )}
+      colunas={[
+        { rotulo: "Duração", render: s => <span className="tabular">{s.duracaoMinutos} min</span> },
+        { rotulo: "Preço", render: s => <strong className="tabular">{moeda(s.preco)}</strong> },
+        {
+          rotulo: "Status",
+          render: s => (
             <span className={`status-pill ${s.ativo ? "status-pill--confirmado" : "status-pill--cancelado"}`}>
               <i className="status-dot" aria-hidden="true" />
               {s.ativo ? "Ativo" : "Inativo"}
             </span>
-          </div>
-          <p className="text-secondary tabular">
-            {moeda(s.preco)} · {s.duracaoMinutos} min{s.elegivel ? " · Gera fidelidade" : ""}
-          </p>
-          {s.descricao && <p className="text-secondary">{s.descricao}</p>}
-        </>
-      )}
+          ),
+        },
+      ]}
       detalhes={s => (
         <details className="catalog-photo">
-          <summary>Foto do serviço</summary>
+          <summary><Camera size={14} strokeWidth={1.75} /> Foto do serviço</summary>
           <FotosAdmin alvo="SERVICO" cadastroId={s.id} alterou={fotos.recarregar} />
         </details>
       )}
@@ -88,6 +94,7 @@ export function ProfissionaisPage() {
 
   return (
     <CadastroCrud<Barbeiro>
+      eyebrow="Barbearia"
       titulo="Profissionais"
       descricao="Gerencie a equipe, especialidades, retratos e contas vinculadas."
       nomeNovo="Novo profissional"
@@ -109,19 +116,28 @@ export function ProfissionaisPage() {
       )}
       exibir={b => (
         <>
-          <div className="inline-title">
-            <h3>{b.nome}</h3>
+          <h3>{b.nome}</h3>
+          <p className="text-secondary">{b.descricao || "Sem especialidades cadastradas"}</p>
+        </>
+      )}
+      colunas={[
+        {
+          rotulo: "Acesso",
+          render: b => <span className="text-secondary">{b.usuarioId ? "Conta vinculada" : "Sem conta"}</span>,
+        },
+        {
+          rotulo: "Status",
+          render: b => (
             <span className={`status-pill ${b.ativo ? "status-pill--confirmado" : "status-pill--cancelado"}`}>
               <i className="status-dot" aria-hidden="true" />
               {b.ativo ? "Ativo" : "Inativo"}
             </span>
-          </div>
-          <p className="text-secondary">{b.descricao || (b.usuarioId ? "Conta vinculada" : "Sem conta vinculada")}</p>
-        </>
-      )}
+          ),
+        },
+      ]}
       detalhes={b => (
         <details className="catalog-photo">
-          <summary>Foto do profissional</summary>
+          <summary><Camera size={14} strokeWidth={1.75} /> Foto do profissional</summary>
           <FotosAdmin alvo="BARBEIRO" cadastroId={b.id} alterou={fotos.recarregar} />
         </details>
       )}
@@ -182,6 +198,7 @@ export function ExpedientePage() {
       {aba === "expediente" ? (
         <CadastroCrud<Expediente>
           key="expediente"
+          eyebrow="Barbearia"
           titulo="Expediente semanal"
           descricao="Um horário só abre quando o expediente da barbearia e do profissional coincidem."
           url="/expedientes"
@@ -207,16 +224,16 @@ export function ExpedientePage() {
             fim: e.fim.slice(0, 5),
           })}
           enviar={v => ({ ...v, barbeiroId: v.barbeiroId ? Number(v.barbeiroId) : null })}
-          exibir={e => (
-            <>
-              <h3 className="tabular">{dias[e.dia]} · {e.inicio.slice(0, 5)} – {e.fim.slice(0, 5)}</h3>
-              <p className="text-secondary">{nomeEquipe(e.barbeiroId)}</p>
-            </>
-          )}
+          exibir={e => <h3 className="tabular">{dias[e.dia]}</h3>}
+          colunas={[
+            { rotulo: "Faixa", render: e => <strong className="tabular">{e.inicio.slice(0, 5)} – {e.fim.slice(0, 5)}</strong> },
+            { rotulo: "Escopo", render: e => <span className="text-secondary">{nomeEquipe(e.barbeiroId)}</span> },
+          ]}
         />
       ) : (
         <CadastroCrud<Bloqueio>
           key="bloqueio"
+          eyebrow="Barbearia"
           titulo="Bloqueios pontuais"
           descricao="Feche horários para pausas, folgas ou feriados."
           url="/bloqueios"
@@ -238,10 +255,13 @@ export function ExpedientePage() {
           enviar={v => ({ ...v, barbeiroId: v.barbeiroId ? Number(v.barbeiroId) : null })}
           exibir={e => (
             <>
-              <h3>{nomeEquipe(e.barbeiroId)}{e.motivo ? ` · ${e.motivo}` : ""}</h3>
-              <p className="text-secondary tabular">{dataHora(e.inicio)} → {dataHora(e.fim)}</p>
+              <h3>{nomeEquipe(e.barbeiroId)}</h3>
+              {e.motivo && <p className="text-secondary">{e.motivo}</p>}
             </>
           )}
+          colunas={[
+            { rotulo: "Período", render: e => <span className="tabular text-secondary">{dataHora(e.inicio)} → {dataHora(e.fim)}</span> },
+          ]}
         />
       )}
     </div>

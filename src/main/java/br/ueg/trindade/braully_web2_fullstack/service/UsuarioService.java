@@ -17,14 +17,17 @@ public class UsuarioService {
     private final PasswordEncoder encoder;
     private final InstalacaoService instalacao;
     private final BarbeiroRepository barbeiros;
+    private final NotificacaoService notificacoes;
 
     public UsuarioService(UsuarioRepository usuarios, PermissaoRepository permissoes,
-                          PasswordEncoder encoder, InstalacaoService instalacao, BarbeiroRepository barbeiros) {
+                          PasswordEncoder encoder, InstalacaoService instalacao,
+                          BarbeiroRepository barbeiros, NotificacaoService notificacoes) {
         this.usuarios = usuarios;
         this.permissoes = permissoes;
         this.encoder = encoder;
         this.instalacao = instalacao;
         this.barbeiros = barbeiros;
+        this.notificacoes = notificacoes;
     }
 
     public record Entrada(@NotBlank @Size(max = 100) String nome,
@@ -71,12 +74,12 @@ public class UsuarioService {
         String username = e.username().toLowerCase(Locale.ROOT);
         if (!username.equals(u.getUsername())) {
             u.setUsername(username);
-            u.revogarSessoes();
+            revogarSessaoECanais(u);
         }
         u.setEmail(e.email().strip());
         if (e.senha() != null && !e.senha().isBlank()) {
             u.setSenha(codificar(e.senha()));
-            u.revogarSessoes();
+            revogarSessaoECanais(u);
         }
         return resumo(u);
     }
@@ -92,14 +95,14 @@ public class UsuarioService {
                 throw Regra.invalida("A senha atual está incorreta.");
             }
             u.setSenha(codificar(e.novaSenha()));
-            u.revogarSessoes();
+            revogarSessaoECanais(u);
         }
         return resumo(u);
     }
 
     public void revogarSessoes(Long id) {
         instalacao.bloquear();
-        buscar(id).revogarSessoes();
+        revogarSessaoECanais(buscar(id));
     }
 
     public void excluir(Long id, Long autor) {
@@ -107,7 +110,7 @@ public class UsuarioService {
         if (id.equals(autor)) throw Regra.conflito("Você não pode desativar a própria conta.");
         Usuario usuario = buscar(id);
         usuario.setAtivo(false);
-        usuario.revogarSessoes();
+        revogarSessaoECanais(usuario);
     }
 
     public Resumo ativar(Long id) {
@@ -128,8 +131,15 @@ public class UsuarioService {
             throw Regra.conflito("Desvincule a conta do profissional antes de remover o perfil BARBEIRO.");
         }
         usuario.setPermissoes(selecao);
-        usuario.revogarSessoes();
+        revogarSessaoECanais(usuario);
         return resumo(usuario);
+    }
+
+    private void revogarSessaoECanais(Usuario u) {
+        u.revogarSessoes();
+        if (u.getId() != null) {
+            notificacoes.revogarCanaisUsuario(u.getId());
+        }
     }
 
     private String codificar(String senha) {

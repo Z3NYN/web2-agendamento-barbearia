@@ -22,15 +22,18 @@ public class AgendaService {
     private final UsuarioService usuarios;
     private final DisponibilidadeService disponibilidade;
     private final FidelidadeService fidelidade;
+    private final NotificacaoService notificacoes;
 
     public AgendaService(AgendamentoRepository agenda, InstalacaoService instalacao, CatalogoService catalogo,
-                         UsuarioService usuarios, DisponibilidadeService disponibilidade, FidelidadeService fidelidade) {
+                         UsuarioService usuarios, DisponibilidadeService disponibilidade,
+                         FidelidadeService fidelidade, NotificacaoService notificacoes) {
         this.agenda = agenda;
         this.instalacao = instalacao;
         this.catalogo = catalogo;
         this.usuarios = usuarios;
         this.disponibilidade = disponibilidade;
         this.fidelidade = fidelidade;
+        this.notificacoes = notificacoes;
     }
 
     public record Nova(@NotNull Long servicoId, Long barbeiroId, @NotNull LocalDateTime inicio, Long premioId,
@@ -119,6 +122,7 @@ public class AgendaService {
         a.fim = e.inicio().plusMinutes(s.duracaoMinutos);
         agenda.save(a);
         if (a.beneficio) fidelidade.vincular(e.premioId(), a);
+        notificacoes.aoCriarAgendamento(a, auth);
         return view(a, admin, loja.antecedenciaMinutos);
     }
 
@@ -134,6 +138,7 @@ public class AgendaService {
         a.inicio = e.inicio();
         a.fim = e.inicio().plusMinutes(duracao);
         a.status = Status.RESERVADO;
+        notificacoes.aoReagendar(a, equipe(auth));
         return view(a, equipe(auth), loja.antecedenciaMinutos);
     }
 
@@ -159,6 +164,8 @@ public class AgendaService {
             default -> throw Regra.conflito("Transição de status inválida.");
         }
         a.status = destino;
+        if (destino == Status.CONFIRMADO) notificacoes.aoConfirmar(a);
+        else if (destino == Status.CANCELADO) notificacoes.aoCancelar(a, equipe(auth));
         return view(a, equipe(auth), loja.antecedenciaMinutos);
     }
 

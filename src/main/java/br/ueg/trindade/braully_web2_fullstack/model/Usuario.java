@@ -5,6 +5,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,18 +19,34 @@ public class Usuario {
     private Long id;
 
     private String nome;
-    @jakarta.persistence.Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String username;
     @JsonIgnore
     private String senha;
     private String email;
     private boolean ativo = true;
     private long versaoSessao;
+    @Column(nullable = false, columnDefinition = "boolean default true not null")
+    private boolean notifSistema = true;
+    @Column(nullable = false, columnDefinition = "boolean default false not null")
+    private boolean notifPush = false;
+    @Column(nullable = false, columnDefinition = "boolean default true not null")
+    private boolean notifLembretes = true;
+    @Column(nullable = false, columnDefinition = "boolean default true not null")
+    private boolean notifFidelidade = true;
 
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     @JsonIgnore public long getVersaoSessao() { return versaoSessao; }
     public void revogarSessoes() { versaoSessao++; }
+    @JsonIgnore public boolean isNotifSistema() { return notifSistema; }
+    public void setNotifSistema(boolean notifSistema) { this.notifSistema = notifSistema; }
+    @JsonIgnore public boolean isNotifPush() { return notifPush; }
+    public void setNotifPush(boolean notifPush) { this.notifPush = notifPush; }
+    @JsonIgnore public boolean isNotifLembretes() { return notifLembretes; }
+    public void setNotifLembretes(boolean notifLembretes) { this.notifLembretes = notifLembretes; }
+    @JsonIgnore public boolean isNotifFidelidade() { return notifFidelidade; }
+    public void setNotifFidelidade(boolean notifFidelidade) { this.notifFidelidade = notifFidelidade; }
 
     @ManyToMany
     private Set<Permissao> permissoes = new HashSet<>();

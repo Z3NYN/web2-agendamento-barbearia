@@ -3,15 +3,29 @@ package br.ueg.trindade.braully_web2_fullstack;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.*;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
+import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
+import com.sun.net.httpserver.HttpServer;
 import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
 import br.ueg.trindade.braully_web2_fullstack.repository.AgendamentoRepository;
+import br.ueg.trindade.braully_web2_fullstack.repository.InscricaoPushRepository;
 import br.ueg.trindade.braully_web2_fullstack.repository.UsuarioRepository;
 import br.ueg.trindade.braully_web2_fullstack.service.Regra;
 import io.jsonwebtoken.Jwts;
@@ -26,7 +40,8 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "spring.datasource.url=jdbc:h2:mem:integracao;DB_CLOSE_DELAY=-1",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "jwt.secret=chave-exclusiva-de-teste-automacao-00001"
+    "jwt.secret=chave-exclusiva-de-teste-automacao-00001",
+    "app.vapid.allow-loopback-http=true"
 })
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BraullyWeb2FullstackApplicationTests {
@@ -35,6 +50,7 @@ class BraullyWeb2FullstackApplicationTests {
     @LocalServerPort int porta;
     @Autowired AgendamentoRepository agenda;
     @Autowired UsuarioRepository usuarios;
+    @Autowired InscricaoPushRepository inscricoesPush;
 
     record Resposta(int codigo, JsonNode corpo) {}
 
@@ -166,6 +182,224 @@ class BraullyWeb2FullstackApplicationTests {
         assertThat(req("GET", "/fidelidade", cliente, null).corpo().path("historico").get(0).path("resgatadoEm").isNull()).isFalse();
         comPremio.put("inicio", inicio.plusHours(2).toString());
         assertThat(req("POST", "/agendamentos", cliente, comPremio).codigo()).isEqualTo(409);
+    }
+
+    @Test @Order(5)
+    void notificaEventosProtegeDestinatarioDeduplicaEEnviaWebPush() throws Exception {
+        var chave = req("GET", "/publico/push-chave", null, null);
+        assertThat(chave.codigo()).isEqualTo(200);
+        String vapidPubB64 = chave.corpo().path("publicKey").asText();
+        byte[] vapidBytes = Base64.getUrlDecoder().decode(vapidPubB64);
+        assertThat(vapidBytes).hasSize(65);
+        assertThat(vapidBytes[0]).isEqualTo((byte) 0x04);
+
+        var pushRecebidos = new LinkedBlockingQueue<Map<String, Object>>();
+        var pushServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        pushServer.createContext("/push", ex -> {
+            byte[] corpo = ex.getRequestBody().readAllBytes();
+            var info = new HashMap<String, Object>();
+            info.put("auth", Optional.ofNullable(ex.getRequestHeaders().getFirst("Authorization")).orElse(""));
+            info.put("enc", Optional.ofNullable(ex.getRequestHeaders().getFirst("Content-Encoding")).orElse(""));
+            info.put("body", corpo);
+            pushRecebidos.add(info);
+            ex.sendResponseHeaders(201, -1);
+            ex.close();
+        });
+        pushServer.createContext("/push-gone", ex -> {
+            ex.getRequestBody().readAllBytes();
+            ex.sendResponseHeaders(410, -1);
+            ex.close();
+        });
+        pushServer.start();
+        try {
+            String cliente = token("cliente", "ClienteDemo@2026");
+            String admin = token("admin", "AdminDemo@2026");
+            String barbeiro = token("barbeiro", "BarbeiroDemo@2026");
+
+            // Gera par P-256 + auth secret válidos para inscrição RFC 8291
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
+            kpg.initialize(new ECGenParameterSpec("secp256r1"));
+            KeyPair uaKeyPair = kpg.generateKeyPair();
+            ECPublicKey uaPub = (ECPublicKey) uaKeyPair.getPublic();
+            byte[] uaRaw = new byte[65];
+            uaRaw[0] = 0x04;
+            byte[] x = uaPub.getW().getAffineX().toByteArray();
+            byte[] y = uaPub.getW().getAffineY().toByteArray();
+            System.arraycopy(x, Math.max(0, x.length - 32), uaRaw, 1 + Math.max(0, 32 - x.length), Math.min(32, x.length));
+            System.arraycopy(y, Math.max(0, y.length - 32), uaRaw, 33 + Math.max(0, 32 - y.length), Math.min(32, y.length));
+            byte[] authBytes = new byte[16];
+            new SecureRandom().nextBytes(authBytes);
+            String p256dhB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(uaRaw);
+            String authB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(authBytes);
+
+            // SSRF: endpoints privados/inválidos devem ser rejeitados (400)
+            for (String ssrf : List.of(
+                    "https://127.0.0.1/push",
+                    "https://10.0.0.1/push",
+                    "https://192.168.1.1/push",
+                    "https://169.254.169.254/latest",
+                    "http://example.com/push",
+                    "https://user@127.0.0.1/push")) {
+                assertThat(req("POST", "/notificacoes/push/inscrever", cliente, Map.of(
+                        "endpoint", ssrf, "p256dh", p256dhB64, "auth", authB64)).codigo()).isEqualTo(400);
+            }
+
+            String endpoint = "http://127.0.0.1:" + pushServer.getAddress().getPort() + "/push";
+            assertThat(req("POST", "/notificacoes/push/inscrever", cliente, Map.of(
+                    "endpoint", endpoint, "p256dh", p256dhB64, "auth", authB64)).codigo()).isEqualTo(200);
+
+            long corte = idPublico("servicos", "Corte clássico");
+            long rafa = idPublico("barbeiros", "Rafa Demo");
+            var inicio = Regra.agora().toLocalDate().plusDays(3).atTime(14, 0);
+            var reserva = req("POST", "/agendamentos", cliente, nova(corte, rafa, inicio));
+            assertThat(reserva.codigo()).isEqualTo(200);
+            long agId = reserva.corpo().path("id").asLong();
+            // Consome push da criação da reserva
+            assertThat(pushRecebidos.poll(5, TimeUnit.SECONDS)).isNotNull();
+
+            assertThat(req("PUT", "/agendamentos/" + agId + "/status", barbeiro, Map.of("status", "CONFIRMADO")).codigo()).isEqualTo(200);
+
+            var push = pushRecebidos.poll(5, TimeUnit.SECONDS);
+            assertThat(push).isNotNull();
+            assertThat(push.get("enc")).isEqualTo("aes128gcm");
+
+            // Verifica assinatura VAPID ES256 (RFC 8292)
+            String authHeader = (String) push.get("auth");
+            assertThat(authHeader).startsWith("vapid t=").contains(", k=" + vapidPubB64);
+            String jwt = authHeader.substring("vapid t=".length(), authHeader.indexOf(", k="));
+            String[] jwtParts = jwt.split("\\.");
+            assertThat(jwtParts).hasSize(3);
+            var params = AlgorithmParameters.getInstance("EC");
+            params.init(new ECGenParameterSpec("secp256r1"));
+            ECParameterSpec ecSpec = params.getParameterSpec(ECParameterSpec.class);
+            ECPublicKey vapidEcPub = (ECPublicKey) KeyFactory.getInstance("EC").generatePublic(new ECPublicKeySpec(
+                    new ECPoint(new BigInteger(1, Arrays.copyOfRange(vapidBytes, 1, 33)),
+                            new BigInteger(1, Arrays.copyOfRange(vapidBytes, 33, 65))), ecSpec));
+            Signature verifier = Signature.getInstance("SHA256withECDSAinP1363Format");
+            verifier.initVerify(vapidEcPub);
+            verifier.update((jwtParts[0] + "." + jwtParts[1]).getBytes(StandardCharsets.US_ASCII));
+            assertThat(verifier.verify(Base64.getUrlDecoder().decode(jwtParts[2]))).isTrue();
+            JsonNode vapidClaims = json.readTree(Base64.getUrlDecoder().decode(jwtParts[1]));
+            assertThat(vapidClaims.path("aud").asText()).isEqualTo("http://127.0.0.1:" + pushServer.getAddress().getPort());
+
+            // Decripta carga RFC 8291 (aes128gcm) com a chave privada do assinante
+            byte[] rawBody = (byte[]) push.get("body");
+            JsonNode pushPayload = decifrarWebPushAes128Gcm(rawBody, uaKeyPair.getPrivate(), uaRaw, authBytes, ecSpec);
+            assertThat(pushPayload.path("titulo").asText()).isEqualTo("Atendimento confirmado");
+            assertThat(pushPayload.path("destinoUrl").asText()).isEqualTo("/meus-horarios");
+            assertThat(pushPayload.toString()).doesNotContain("ClienteDemo").doesNotContain("admin@");
+
+            var painelCliente = req("GET", "/notificacoes", cliente, null);
+            assertThat(painelCliente.codigo()).isEqualTo(200);
+            String textoCli = painelCliente.corpo().toString();
+            assertThat(textoCli).contains("CONFIRMADO").contains("RECOMPENSA_FIDELIDADE");
+            assertThat(textoCli).doesNotContain("ClienteDemo").doesNotContain("admin@");
+
+            var painelAdmin = req("GET", "/notificacoes", admin, null);
+            assertThat(painelAdmin.codigo()).isEqualTo(200);
+            long idAdmin = painelAdmin.corpo().path("itens").get(0).path("id").asLong();
+            // Isolamento de destinatário: cliente não pode marcar notificação do admin como lida
+            assertThat(req("PUT", "/notificacoes/" + idAdmin + "/lida", cliente, null).codigo()).isEqualTo(404);
+
+            // Lembrete para agendamento dentro das próximas 2h sem duplicidade
+            var a = agenda.findById(agId).orElseThrow();
+            a.inicio = Regra.agora().plusMinutes(45);
+            a.fim = a.inicio.plusMinutes(30);
+            agenda.save(a);
+            var p1 = req("GET", "/notificacoes", cliente, null).corpo().path("itens");
+            var p2 = req("GET", "/notificacoes", cliente, null).corpo().path("itens");
+            long lembretes1 = countTipo(p1, "LEMBRETE");
+            long lembretes2 = countTipo(p2, "LEMBRETE");
+            assertThat(lembretes1).isGreaterThanOrEqualTo(1);
+            assertThat(lembretes2).isEqualTo(lembretes1);
+
+            // Dispositivo compartilhado: outra conta assume o mesmo endpoint e isola a conta anterior
+            assertThat(req("POST", "/cadastro", null, Map.of(
+                    "nome", "Cliente Dois", "username", "clientedois", "email", "c2@teste.local", "senha", "ClienteDois@2026")).codigo()).isEqualTo(200);
+            String cliente2 = token("clientedois", "ClienteDois@2026");
+            assertThat(req("POST", "/notificacoes/push/inscrever", cliente2, Map.of(
+                    "endpoint", endpoint, "p256dh", p256dhB64, "auth", authB64)).codigo()).isEqualTo(200);
+            assertThat(req("GET", "/notificacoes/preferencias", cliente, null).corpo().path("notifPush").asBoolean()).isFalse();
+
+            // Evento para cliente1 NÃO deve disparar push para o endpoint assumido por cliente2
+            pushRecebidos.clear();
+            var inicioCli1 = Regra.agora().toLocalDate().plusDays(4).atTime(15, 0);
+            assertThat(req("POST", "/agendamentos", cliente, nova(corte, rafa, inicioCli1)).codigo()).isEqualTo(200);
+            assertThat(pushRecebidos.poll(400, TimeUnit.MILLISECONDS)).isNull();
+
+            // SSE exige autenticação (401) e logout revoga token + inscrições push da conta
+            assertThat(http.send(pedido("GET", "/notificacoes/stream", null, null), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(401);
+            assertThat(req("POST", "/logout", cliente2, null).codigo()).isEqualTo(200);
+            assertThat(http.send(pedido("GET", "/notificacoes/stream", cliente2, null), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(401);
+            String cliente2Novo = token("clientedois", "ClienteDois@2026");
+            assertThat(req("GET", "/notificacoes/preferencias", cliente2Novo, null).corpo().path("notifPush").asBoolean()).isFalse();
+
+            // Resposta 410 Gone remove inscrição expirada de forma transacional
+            String endpointGone = "http://127.0.0.1:" + pushServer.getAddress().getPort() + "/push-gone";
+            assertThat(req("POST", "/notificacoes/push/inscrever", cliente2Novo, Map.of(
+                    "endpoint", endpointGone, "p256dh", p256dhB64, "auth", authB64)).codigo()).isEqualTo(200);
+            var inicioCli2 = Regra.agora().toLocalDate().plusDays(5).atTime(15, 0);
+            assertThat(req("POST", "/agendamentos", cliente2Novo, nova(corte, rafa, inicioCli2)).codigo()).isEqualTo(200);
+            long deadline = System.currentTimeMillis() + 5000;
+            while (System.currentTimeMillis() < deadline && inscricoesPush.findByEndpoint(endpointGone).isPresent()) {
+                Thread.sleep(50);
+            }
+            assertThat(inscricoesPush.findByEndpoint(endpointGone)).isEmpty();
+
+            assertThat(req("PUT", "/notificacoes/preferencias", cliente, Map.of(
+                    "notifSistema", true, "notifPush", false, "notifLembretes", false, "notifFidelidade", true)).codigo()).isEqualTo(200);
+        } finally {
+            pushServer.stop(0);
+        }
+    }
+
+    private JsonNode decifrarWebPushAes128Gcm(byte[] body, PrivateKey uaPriv, byte[] uaPubRaw, byte[] authSecret, ECParameterSpec ecSpec) throws Exception {
+        ByteBuffer buf = ByteBuffer.wrap(body);
+        byte[] salt = new byte[16];
+        buf.get(salt);
+        int rs = buf.getInt();
+        assertThat(rs).isEqualTo(4096);
+        int idLen = buf.get() & 0xff;
+        assertThat(idLen).isEqualTo(65);
+        byte[] asPubRaw = new byte[idLen];
+        buf.get(asPubRaw);
+        byte[] ciphertext = new byte[buf.remaining()];
+        buf.get(ciphertext);
+
+        ECPublicKey asPub = (ECPublicKey) KeyFactory.getInstance("EC").generatePublic(new ECPublicKeySpec(
+                new ECPoint(new BigInteger(1, Arrays.copyOfRange(asPubRaw, 1, 33)),
+                        new BigInteger(1, Arrays.copyOfRange(asPubRaw, 33, 65))), ecSpec));
+        KeyAgreement ka = KeyAgreement.getInstance("ECDH");
+        ka.init(uaPriv);
+        ka.doPhase(asPub, true);
+        byte[] ecdhSecret = ka.generateSecret();
+
+        byte[] prkKey = hmacSha256(authSecret, ecdhSecret);
+        byte[] infoPrefix = "WebPush: info\0".getBytes(StandardCharsets.UTF_8);
+        byte[] keyInfo = ByteBuffer.allocate(infoPrefix.length + uaPubRaw.length + asPubRaw.length + 1)
+                .put(infoPrefix).put(uaPubRaw).put(asPubRaw).put((byte) 1).array();
+        byte[] ikm = hmacSha256(prkKey, keyInfo);
+        byte[] prk = hmacSha256(salt, ikm);
+        byte[] cek = Arrays.copyOf(hmacSha256(prk, "Content-Encoding: aes128gcm\0\1".getBytes(StandardCharsets.UTF_8)), 16);
+        byte[] nonce = Arrays.copyOf(hmacSha256(prk, "Content-Encoding: nonce\0\1".getBytes(StandardCharsets.UTF_8)), 12);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(cek, "AES"), new GCMParameterSpec(128, nonce));
+        byte[] padded = cipher.doFinal(ciphertext);
+        assertThat(padded[padded.length - 1]).isEqualTo((byte) 2);
+        return json.readTree(new String(padded, 0, padded.length - 1, StandardCharsets.UTF_8));
+    }
+
+    private static byte[] hmacSha256(byte[] key, byte[] data) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(key, "HmacSHA256"));
+        return mac.doFinal(data);
+    }
+
+    private long countTipo(JsonNode itens, String tipo) {
+        long c = 0;
+        for (JsonNode n : itens) if (tipo.equals(n.path("tipo").asText())) c++;
+        return c;
     }
 
     private long idPublico(String lista, String nome) throws Exception {

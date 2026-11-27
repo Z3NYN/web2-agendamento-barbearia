@@ -13,10 +13,13 @@ import br.ueg.trindade.braully_web2_fullstack.repository.MovimentoFidelidadeRepo
 public class FidelidadeService {
     private final MovimentoFidelidadeRepository movimentos;
     private final InstalacaoService instalacao;
+    private final NotificacaoService notificacoes;
 
-    public FidelidadeService(MovimentoFidelidadeRepository movimentos, InstalacaoService instalacao) {
+    public FidelidadeService(MovimentoFidelidadeRepository movimentos, InstalacaoService instalacao,
+                             NotificacaoService notificacoes) {
         this.movimentos = movimentos;
         this.instalacao = instalacao;
+        this.notificacoes = notificacoes;
     }
 
     public record Movimento(Long id, Tipo tipo, int quantidade, String premio, Long servicoId,
@@ -61,6 +64,7 @@ public class FidelidadeService {
             premio.premio = b.premio;
             premio.nomePremio = b.premio.getNome();
             movimentos.save(premio);
+            notificacoes.aoLiberarRecompensa(a.cliente, premio);
             saldo -= b.meta;
         }
     }

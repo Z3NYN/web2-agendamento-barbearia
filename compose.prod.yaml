@@ -1,0 +1,9 @@
+# Sobreposição de produção: desativa contas demonstrativas e exige segredos explícitos.
+# Uso: docker compose -f compose.yaml -f compose.prod.yaml up --build -d
+services:
+  backend:
+    environment:
+      SOLDADO_DEMO: "false"
+      SOLDADO_ADMIN_PASSWORD: "${SOLDADO_ADMIN_PASSWORD:?Defina SOLDADO_ADMIN_PASSWORD no ambiente ou .env}"
+      SOLDADO_JWT_SECRET: "${SOLDADO_JWT_SECRET:?Defina SOLDADO_JWT_SECRET com pelo menos 32 bytes}"
+      SOLDADO_DB_PASSWORD: "${SOLDADO_DB_PASSWORD:-}"

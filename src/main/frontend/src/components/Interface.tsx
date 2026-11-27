@@ -1,17 +1,9 @@
 import { cloneElement, useEffect, useId, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { AlertCircle, CalendarDays, CheckCircle2, X } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, RefreshCw, X } from "lucide-react";
 
-export function Titulo({
-  titulo,
-  detalhe,
-  acao,
-  eyebrow,
-}: {
-  titulo: string;
-  detalhe?: string;
-  acao?: ReactNode;
-  eyebrow?: string;
+export function Titulo({ titulo, detalhe, acao, eyebrow }: {
+  titulo: string; detalhe?: string; acao?: ReactNode; eyebrow?: string;
 }) {
   return (
     <header className="page-head">
@@ -39,16 +31,16 @@ export function Campo({ nome, children, dica }: { nome: string; children: ReactE
 function Toast({ texto }: { texto: string }) {
   const [aberto, setAberto] = useState(true);
   useEffect(() => {
-    const id = window.setTimeout(() => setAberto(false), 5500);
+    const id = window.setTimeout(() => setAberto(false), 5200);
     return () => window.clearTimeout(id);
   }, []);
   if (!aberto) return null;
   return (
     <div className="toast" role="status" aria-live="polite">
-      <CheckCircle2 size={18} className="toast-icon" />
+      <CheckCircle2 size={17} strokeWidth={1.75} className="toast-icon" />
       <span>{texto}</span>
-      <button type="button" className="icon-btn icon-btn--ghost" aria-label="Dispensar aviso" onClick={() => setAberto(false)}>
-        <X size={15} />
+      <button type="button" className="icon-btn icon-btn--ghost icon-btn--sm" aria-label="Dispensar aviso" onClick={() => setAberto(false)}>
+        <X size={15} strokeWidth={1.75} />
       </button>
     </div>
   );
@@ -96,12 +88,19 @@ export function SkeletonSlots({ quantidade = 8 }: { quantidade?: number }) {
   );
 }
 
-export function Aviso({ erro, sucesso, carregando }: { erro?: string; sucesso?: string; carregando?: boolean }) {
+export function Aviso({ erro, sucesso, carregando, aoTentarNovamente }: {
+  erro?: string; sucesso?: string; carregando?: boolean; aoTentarNovamente?: () => void;
+}) {
   if (erro) {
     return (
       <div className="alert alert--error" role="alert">
-        <AlertCircle size={18} />
-        <span>{erro}</span>
+        <AlertCircle size={17} strokeWidth={1.75} />
+        <span className="alert-body">{erro}</span>
+        {aoTentarNovamente && (
+          <button type="button" className="alert-retry" onClick={aoTentarNovamente}>
+            <RefreshCw size={13} strokeWidth={1.75} /> Tentar novamente
+          </button>
+        )}
       </div>
     );
   }
@@ -120,7 +119,7 @@ export function Aviso({ erro, sucesso, carregando }: { erro?: string; sucesso?: 
 export function Vazio({ texto, acao }: { texto: string; acao?: ReactNode }) {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon"><CalendarDays size={20} strokeWidth={1.6} /></div>
+      <div className="empty-state-icon"><CalendarDays size={19} strokeWidth={1.65} /></div>
       <p>{texto}</p>
       {acao && <div className="empty-state-action">{acao}</div>}
     </div>

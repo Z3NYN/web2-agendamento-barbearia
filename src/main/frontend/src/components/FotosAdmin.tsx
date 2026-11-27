@@ -19,6 +19,7 @@ export default function FotosAdmin({
   const fotos = useConsulta<Foto[]>("/publico/fotos");
   const [arquivo, setArquivo] = useState<File>();
   const [preview, setPreview] = useState("");
+  const previewAnterior = useRef<string | undefined>(undefined);
   const [categoria, setCategoria] = useState("Outros");
   const [legenda, setLegenda] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -26,12 +27,17 @@ export default function FotosAdmin({
   const input = useRef<HTMLInputElement>(null);
   const atuais = fotos.dados?.filter(f => f.alvo === alvo && f.cadastroId === (cadastroId ?? null)) ?? [];
 
-  useEffect(() => {
-    if (!arquivo) return;
-    const url = URL.createObjectURL(arquivo);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [arquivo]);
+  useEffect(() => () => {
+    if (previewAnterior.current) URL.revokeObjectURL(previewAnterior.current);
+  }, []);
+
+  function definirArquivo(imagem?: File) {
+    if (previewAnterior.current) URL.revokeObjectURL(previewAnterior.current);
+    const novaUrl = imagem ? URL.createObjectURL(imagem) : undefined;
+    previewAnterior.current = novaUrl;
+    setArquivo(imagem);
+    setPreview(novaUrl ?? "");
+  }
 
   async function gravar(remover?: Foto) {
     if (!remover && !arquivo) return;
@@ -48,7 +54,7 @@ export default function FotosAdmin({
         if (legenda.trim()) dados.set("legenda", legenda.trim());
         if (alvo === "GALERIA") dados.set("categoria", categoria);
         await api.post("/fotos", dados);
-        setArquivo(undefined);
+        definirArquivo(undefined);
         setLegenda("");
         if (input.current) input.current.value = "";
       }
@@ -87,11 +93,11 @@ export default function FotosAdmin({
           onChange={e => {
             const f = e.target.files?.[0];
             if (f && f.size > 2097152) {
-              setArquivo(undefined);
+              definirArquivo(undefined);
               setFeedback({ erro: "Selecione uma imagem de até 2 MB." });
               e.target.value = "";
             } else {
-              setArquivo(f);
+              definirArquivo(f);
               setFeedback({});
             }
           }}

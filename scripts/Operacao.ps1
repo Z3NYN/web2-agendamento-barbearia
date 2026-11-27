@@ -12,10 +12,20 @@ try {
     try { $temBloqueio = $mutex.WaitOne(0) }
     catch [Threading.AbandonedMutexException] { $temBloqueio = $true }
     if (!$temBloqueio) { throw 'Esta instalacao esta aberta. Use Ctrl+C na janela do sistema e aguarde antes de continuar.' }
-    $caminhoDados = Join-Path $PSScriptRoot 'dados'
+    $raiz = $PSScriptRoot
+    $jar = Join-Path $PSScriptRoot 'app.jar'
+    if (!(Test-Path -LiteralPath $jar -PathType Leaf)) {
+        $raizRepo = Split-Path -Parent $PSScriptRoot
+        $jarRepo = Join-Path $raizRepo 'target\app.jar'
+        if (Test-Path -LiteralPath $jarRepo -PathType Leaf) {
+            $raiz = $raizRepo
+            $jar = $jarRepo
+        }
+    }
+    Set-Location -LiteralPath $raiz
+    $caminhoDados = Join-Path $raiz 'dados'
     if ($Acao -eq 'Iniciar') {
-        $jar = Join-Path $PSScriptRoot 'app.jar'
-        if (!(Test-Path -LiteralPath $jar -PathType Leaf)) { throw 'app.jar ausente. Extraia todo o ZIP antes de iniciar.' }
+        if (!(Test-Path -LiteralPath $jar -PathType Leaf)) { throw 'app.jar ausente. Execute BUILD.cmd ou extraia todo o ZIP antes de iniciar.' }
         $java = Join-Path $PSScriptRoot 'runtime\bin\java.exe'
         if (!(Test-Path -LiteralPath $java -PathType Leaf)) {
             $instalado = Get-Command java.exe -ErrorAction SilentlyContinue
@@ -35,7 +45,7 @@ try {
         if (!(Test-Path -LiteralPath (Join-Path $caminhoDados 'barbearia.mv.db') -PathType Leaf)) {
             throw 'Banco local ausente. Inicie o sistema uma vez antes de executar esta operacao.'
         }
-        $pastaBackup = Join-Path $PSScriptRoot 'backups'
+        $pastaBackup = Join-Path $raiz 'backups'
         New-Item -ItemType Directory -Path $pastaBackup -Force | Out-Null
         $marca = Get-Date -Format 'yyyyMMdd-HHmmss-ffff'
         if ($Acao -eq 'Backup') {

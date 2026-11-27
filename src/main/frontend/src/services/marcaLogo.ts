@@ -1,22 +1,27 @@
 import type { Marca } from "../types/Barbearia";
+import { COR_DESTAQUE_PADRAO, COR_FUNDO_PADRAO, ehTemaPadrao, validarCorDestaque, validarCorFundo } from "../theme/themeEngine";
 
-export const CHAVE_ABERTURA = "studio-abertura-v4";
+export const CHAVE_ABERTURA = "studio-abertura-v6";
+export const LOGO_OFICIAL = "/studio/marca.png";
 
+// O backend decide se o logotipo ativo corresponde ao wordmark oficial ou a um upload próprio.
 export function logoMarca(marca?: Marca | null): string | undefined {
-  if (!marca?.logo) return undefined;
-  if (marca.demonstracao && marca.logo === "/api/publico/logo?v=1") {
-    return "/studio/marca.png";
-  }
-  return marca.logo;
+  return marca?.logo ?? undefined;
+}
+
+export function ehWordmarkOficial(logoUrl?: string): boolean {
+  return logoUrl?.split("?")[0] === LOGO_OFICIAL;
 }
 
 export function normalizarCores(marca?: Marca | null): { fundo: string; destaque: string } {
-  if (!marca) return { fundo: "#0E0E0F", destaque: "#D4B48C" };
-  const f = marca.corFundo.toLowerCase();
-  const d = marca.corDestaque.toLowerCase();
-  const padraoLegado =
-    (f === "#0d0d0d" && d === "#e6c89b") ||
-    (f === "#121212" && d === "#d4bd98");
-  if (padraoLegado) return { fundo: "#0E0E0F", destaque: "#D4B48C" };
-  return { fundo: marca.corFundo || "#0E0E0F", destaque: marca.corDestaque || "#D4B48C" };
+  if (!marca) return { fundo: COR_FUNDO_PADRAO, destaque: COR_DESTAQUE_PADRAO };
+  if (ehTemaPadrao(marca.corFundo, marca.corDestaque)) {
+    return { fundo: COR_FUNDO_PADRAO, destaque: COR_DESTAQUE_PADRAO };
+  }
+  const f = validarCorFundo(marca.corFundo);
+  const d = validarCorDestaque(marca.corDestaque);
+  return {
+    fundo: f.valida && f.hex ? f.hex : COR_FUNDO_PADRAO,
+    destaque: d.valida && d.hex ? d.hex : COR_DESTAQUE_PADRAO,
+  };
 }

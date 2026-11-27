@@ -1,376 +1,232 @@
-/* ==========================================================================
-   MOTION SYSTEM — TOKENS, CURVAS E COREOGRAFIA CENTRALIZADA
-   ========================================================================== */
 :root {
-  /* Durações recomendadas por contexto */
-  --dur-tap: 110ms;
+  --dur-tap: 100ms;
   --dur-micro: 170ms;
-  --dur-component: 240ms;
-  --dur-page: 300ms;
-  --dur-photo: 560ms;
-  --dur-cinema: 1050ms;
+  --dur-component: 260ms;
+  --dur-page: 340ms;
+  --dur-photo: 720ms;
+  --dur-cinema: 1120ms;
 
-  /* Aliases compatíveis */
-  --dur-fast: var(--dur-micro);
-  --dur-base: var(--dur-component);
-  --dur-slow: var(--dur-photo);
-
-  /* Curvas físicas naturais */
-  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-press: cubic-bezier(0.2, 0, 0, 1);
-  --ease-spring: cubic-bezier(0.34, 1.38, 0.64, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
-/* ==========================================================================
-   VIEW TRANSITION API (PROGRESSIVE ENHANCEMENT)
-   ========================================================================== */
-::view-transition-old(root) {
-  animation: vt-fade-out 180ms var(--ease-exit) both;
+::view-transition-old(root) { animation: vt-out 200ms var(--ease-exit) both; }
+::view-transition-new(root) { animation: fade-up 300ms var(--ease-editorial) both; }
+html[data-route-dir="forward"]::view-transition-old(root) { animation: vt-out-left 200ms var(--ease-exit) both; }
+html[data-route-dir="forward"]::view-transition-new(root) { animation: vt-in-right 300ms var(--ease-editorial) both; }
+html[data-route-dir="back"]::view-transition-old(root) { animation: vt-out-right 200ms var(--ease-exit) both; }
+html[data-route-dir="back"]::view-transition-new(root) { animation: vt-in-left 300ms var(--ease-editorial) both; }
+
+@keyframes vt-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.992); } }
+@keyframes vt-out-left { from { opacity: 1; transform: translate3d(0, 0, 0); } to { opacity: 0; transform: translate3d(-16px, 0, 0); } }
+@keyframes vt-in-right { from { opacity: 0; transform: translate3d(20px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes vt-out-right { from { opacity: 1; transform: translate3d(0, 0, 0); } to { opacity: 0; transform: translate3d(16px, 0, 0); } }
+@keyframes vt-in-left { from { opacity: 0; transform: translate3d(-20px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+
+.route-sweep {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 95;
+  pointer-events: none;
+  background: var(--accent-primary);
+  transform-origin: left center;
+  animation: route-sweep-anim 460ms var(--ease-editorial) both;
 }
 
-::view-transition-new(root) {
-  animation: vt-fade-in 260ms var(--ease-editorial) both;
+@keyframes route-sweep-anim {
+  0% { transform: scaleX(0); opacity: 1; }
+  68% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
 }
 
-@keyframes vt-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+.stage-viewport,
+.booking-stage-viewport,
+.week-strip-wrap {
+  min-width: 0;
+  width: 100%;
+  overflow-x: clip;
 }
 
-@keyframes vt-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ==========================================================================
-   TRANSIÇÕES DIRECIONAIS ENTRE ROTAS
-   ========================================================================== */
 .route-stage {
   min-width: 0;
   width: 100%;
-  will-change: transform, opacity;
   animation: route-fade var(--dur-page) var(--ease-editorial) both;
 }
 
-.route-stage[data-dir="forward"] {
-  animation-name: route-forward;
-}
+.route-stage[data-dir="forward"] { animation-name: route-forward; }
+.route-stage[data-dir="back"] { animation-name: route-back; }
 
-.route-stage[data-dir="back"] {
-  animation-name: route-back;
-}
+@keyframes route-fade { from { opacity: 0; transform: translate3d(0, 12px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes route-forward { from { opacity: 0; transform: translate3d(24px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes route-back { from { opacity: 0; transform: translate3d(-24px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
 
-@keyframes route-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes route-forward {
-  from { opacity: 0; transform: translate3d(14px, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes route-back {
-  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-/* ==========================================================================
-   SCROLL REVEAL & STAGGER PRIMITIVES
-   ========================================================================== */
 .reveal {
   opacity: 0;
-  transform: translate3d(0, 14px, 0);
-  transition:
-    opacity var(--dur-component) var(--ease-editorial) var(--reveal-delay, 0ms),
-    transform var(--dur-photo) var(--ease-editorial) var(--reveal-delay, 0ms);
-}
-
-.reveal--fade {
-  transform: none;
-}
-
-.reveal--scale {
-  transform: scale(0.97);
-}
-
-.reveal--left {
-  transform: translate3d(-12px, 0, 0);
+  will-change: transform, opacity;
 }
 
 .reveal.is-visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
+  animation-duration: 620ms;
+  animation-timing-function: var(--ease-editorial);
+  animation-fill-mode: both;
+  animation-delay: var(--reveal-delay, 0ms);
 }
 
-/* ==========================================================================
-   FORMACAO E REVELACAO PROGRESSIVA DE FOTOGRAFIAS
-   ========================================================================== */
+.reveal--up.is-visible { animation-name: reveal-rise; }
+.reveal--fade.is-visible { animation-name: reveal-fade; }
+.reveal--scale.is-visible { animation-name: reveal-scale; }
+.reveal--left.is-visible { animation-name: reveal-left; }
+.reveal--clip.is-visible { animation-name: reveal-clip-up; }
+
+@keyframes reveal-rise { from { opacity: 0; transform: translate3d(0, 22px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes reveal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reveal-scale { from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.96); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes reveal-left { from { opacity: 0; transform: translate3d(-20px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes reveal-clip-up { from { opacity: 0.01; clip-path: inset(0 0 100% 0); transform: translate3d(0, 14px, 0); } to { opacity: 1; clip-path: inset(0 0 0% 0); transform: translate3d(0, 0, 0); } }
+
 .media-frame {
   position: relative;
   overflow: hidden;
   background: var(--bg-surface-2);
-  display: grid;
-  place-items: center;
+  display: block;
   min-width: 0;
   min-height: 0;
+}
+
+.parallax-layer {
+  width: 100%;
+  height: 100%;
+  display: block;
+  will-change: transform;
 }
 
 .media-frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition:
-    transform var(--dur-photo) var(--ease-editorial),
-    opacity 320ms var(--ease-editorial),
-    filter 420ms var(--ease-editorial),
-    clip-path var(--dur-photo) var(--ease-editorial);
+  display: block;
 }
 
 .media-frame.is-loading::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, var(--bg-surface-2) 25%, #2e2e34 50%, var(--bg-surface-2) 75%);
+  background: linear-gradient(100deg, var(--bg-surface-2) 20%, var(--bg-shimmer) 50%, var(--bg-surface-2) 80%);
   background-size: 200% 100%;
-  animation: shimmer-move 1.4s infinite linear;
-  z-index: 1;
+  animation: shimmer-move 1.3s infinite linear;
+  z-index: 2;
   pointer-events: none;
 }
 
-.media-frame.is-loading img {
+.media-frame.is-loading img { opacity: 0; }
+
+.media-frame--curtain.is-loaded::after,
+.media-frame--wipe.is-loaded::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--bg-surface-2);
+  pointer-events: none;
+  transform: scaleY(1);
+  transform-origin: top center;
+}
+
+.media-frame--wipe.is-loaded::after {
+  transform: scaleX(1);
+  transform-origin: right center;
+}
+
+.media-frame--curtain:not(.is-animating) img,
+.media-frame--wipe:not(.is-animating) img,
+.media-frame--expand:not(.is-animating) img { opacity: 0; }
+
+.media-frame--curtain.is-animating::after { animation: veil-slide-up var(--dur-photo) var(--ease-editorial) var(--reveal-delay, 0ms) both; }
+.media-frame--curtain.is-animating img { animation: photo-curtain-up var(--dur-photo) var(--ease-editorial) var(--reveal-delay, 0ms) both; }
+.media-frame--wipe.is-animating::after { animation: veil-slide-right var(--dur-photo) var(--ease-editorial) var(--reveal-delay, 0ms) both; }
+.media-frame--wipe.is-animating img { animation: photo-wipe-right var(--dur-photo) var(--ease-editorial) var(--reveal-delay, 0ms) both; }
+.media-frame--expand.is-animating img { animation: photo-expand 800ms var(--ease-editorial) var(--reveal-delay, 0ms) both; }
+.media-frame--fade.is-animating img { animation: photo-soft-in 400ms var(--ease-out) both; }
+
+@keyframes veil-slide-up { 0% { transform: scaleY(1); opacity: 1; } 90% { opacity: 1; } 100% { transform: scaleY(0); opacity: 0; } }
+@keyframes veil-slide-right { 0% { transform: scaleX(1); opacity: 1; } 90% { opacity: 1; } 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes photo-curtain-up { 0% { opacity: 0.35; clip-path: inset(100% 0 0 0); transform: scale(1.11); } 100% { opacity: 1; clip-path: inset(0 0 0 0); transform: scale(1); } }
+@keyframes photo-wipe-right { 0% { opacity: 0.35; clip-path: inset(0 100% 0 0); transform: scale(1.09); } 100% { opacity: 1; clip-path: inset(0 0 0 0); transform: scale(1); } }
+@keyframes photo-expand { 0% { opacity: 0.28; clip-path: inset(10% 7% 10% 7% round 12px); transform: scale(1.1); } 100% { opacity: 1; clip-path: inset(0% 0% 0% 0% round 0px); transform: scale(1); } }
+@keyframes photo-soft-in { from { opacity: 0; filter: blur(5px); transform: scale(1.025); } to { opacity: 1; filter: blur(0); transform: scale(1); } }
+
+.splash-screen { transition: opacity 280ms var(--ease-exit), transform 280ms var(--ease-exit); }
+.splash-screen.is-leaving { opacity: 0; transform: translate3d(0, -14px, 0) scale(1.018); pointer-events: none; }
+.splash-photo .parallax-layer { animation: cinema-photo-zoom 5.5s var(--ease-out) 0.4s both; }
+.splash-photo img { animation: cinema-mask-reveal var(--dur-cinema) var(--ease-editorial) both; }
+.splash-brand { animation: cinema-brand-rise 640ms var(--ease-editorial) 140ms both; }
+.splash-accent-rule { display: block; width: 44px; height: 2px; background: var(--accent); transform-origin: left center; animation: rule-draw 600ms var(--ease-editorial) 200ms both; }
+.stagger-line { display: block; overflow: hidden; padding-bottom: 0.04em; }
+.stagger-line > span { display: block; animation: cinema-line-rise 720ms var(--ease-editorial) var(--line-delay, 240ms) both; }
+.splash-copy-sub { animation: reveal-rise 600ms var(--ease-editorial) 420ms both; }
+.splash-actions { animation: reveal-rise 600ms var(--ease-editorial) 500ms both; }
+
+@keyframes cinema-mask-reveal {
+  0% { opacity: 0.18; clip-path: inset(14% 7% 14% 7% round 14px); transform: scale(1.14); }
+  65% { opacity: 1; clip-path: inset(0% 0% 0% 0% round 0px); }
+  100% { opacity: 1; clip-path: inset(0% 0% 0% 0% round 0px); transform: scale(1); }
+}
+@keyframes cinema-photo-zoom { from { transform: scale(1); } to { transform: scale(1.04); } }
+@keyframes cinema-brand-rise { from { opacity: 0; transform: translate3d(0, -14px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes cinema-line-rise { from { opacity: 0; transform: translate3d(0, 110%, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes rule-draw { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+
+.collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
-  filter: blur(8px);
-  transform: scale(1.04);
+  transition: grid-template-rows 280ms var(--ease-editorial), opacity 220ms var(--ease-out);
 }
+.collapsible.is-open { grid-template-rows: 1fr; opacity: 1; }
+.collapsible > div { overflow: hidden; min-height: 0; }
 
-.media-frame.is-loaded img {
-  opacity: 1;
-  filter: blur(0);
-}
+.sheet-dialog[open]:not(.is-closing)::backdrop { animation: reveal-fade 200ms var(--ease-out) both; }
+.sheet-dialog[open]:not(.is-closing) .sheet-surface { animation: sheet-up var(--dur-component) var(--ease-editorial) both; }
+.sheet-dialog[open].is-closing::backdrop,
+.sheet-dialog.is-closing::backdrop { animation: vt-out 180ms var(--ease-exit) both; }
+.sheet-dialog[open].is-closing .sheet-surface,
+.sheet-dialog.is-closing .sheet-surface { animation: sheet-down 190ms var(--ease-exit) both; }
 
-/* Clip-path curtain reveal triggered when visible + loaded */
-.media-frame--curtain img {
-  clip-path: inset(0 0 14% 0);
-  transform: scale(1.06);
-}
+.booking-stage.is-exiting { animation: stage-exit 140ms var(--ease-exit) both; pointer-events: none; }
 
-.media-frame--curtain.is-revealed.is-loaded img {
-  clip-path: inset(0 0 0 0);
-  transform: scale(1);
-}
+@keyframes sheet-up { from { opacity: 0; transform: translate3d(0, 26px, 0) scale(0.985); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes sheet-down { from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } to { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.985); } }
+@keyframes fade-up { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes stage-enter { from { opacity: 0; transform: translate3d(var(--stage-dx, 22px), 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+@keyframes stage-exit { from { opacity: 1; transform: translate3d(0, 0, 0); } to { opacity: 0; transform: translate3d(calc(var(--stage-dx, 22px) * -0.7), 0, 0); } }
+@keyframes slot-pop { 0% { transform: scale(0.91); } 55% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes confirm-pop { 0% { opacity: 0; transform: scale(0.68); } 65% { opacity: 1; transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes stamp-reveal { from { opacity: 0; transform: scale(0.84); } to { opacity: 1; transform: scale(1); } }
+@keyframes stamp-conquest { 0% { opacity: 0; transform: scale(0.5); box-shadow: 0 0 0 0 var(--accent-ring); } 60% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 0 11px transparent; } 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 transparent; } }
+@keyframes progress-grow { from { transform: scaleX(0.05); } to { transform: scaleX(1); } }
+@keyframes shimmer-move { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes lightbox-slide { from { opacity: 0; transform: translate3d(var(--lb-dx, 24px), 0, 0) scale(0.975); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes pulse-soft { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.84); } }
 
-.media-frame--wipe img {
-  clip-path: inset(0 12% 0 0);
-  transform: scale(1.05);
-}
+.live-dot { animation: pulse-soft 2.4s ease-in-out infinite; }
+.lightbox-frame { animation: lightbox-slide 260ms var(--ease-editorial) both; }
 
-.media-frame--wipe.is-revealed.is-loaded img {
-  clip-path: inset(0 0 0 0);
-  transform: scale(1);
-}
-
-/* ==========================================================================
-   ABERTURA CINEMATOGRAFICA (NAO-BLOQUEANTE, <= 1.25s)
-   ========================================================================== */
-.splash-screen {
-  transition: opacity 240ms var(--ease-exit), transform 240ms var(--ease-exit);
-}
-
-.splash-screen.is-leaving {
-  opacity: 0;
-  transform: scale(0.985);
-}
-
-.splash-photo img {
-  will-change: transform, clip-path, opacity;
-  animation: cinema-photo-reveal var(--dur-cinema) var(--ease-editorial) both;
-}
-
-.splash-scrim {
-  animation: cinema-scrim-in 760ms var(--ease-editorial) both;
-}
-
-.splash-brand {
-  animation: cinema-brand-in 520ms var(--ease-editorial) 110ms both;
-}
-
-.stagger-line {
-  display: block;
-  overflow: hidden;
-  padding-bottom: 0.06em;
-}
-
-.stagger-line > span {
-  display: block;
-  animation: cinema-line-up 620ms var(--ease-editorial) var(--line-delay, 220ms) both;
-}
-
-.splash-copy-sub {
-  animation: cinema-fade-up 520ms var(--ease-editorial) 440ms both;
-}
-
-.splash-actions {
-  animation: cinema-fade-up 540ms var(--ease-editorial) 540ms both;
-}
-
-.splash-accent-rule {
-  display: block;
-  width: 36px;
-  height: 2px;
-  background: var(--accent);
-  transform-origin: left center;
-  animation: rule-draw 580ms var(--ease-editorial) 190ms both;
-}
-
-@keyframes cinema-photo-reveal {
-  0% {
-    opacity: 0.35;
-    clip-path: inset(6% 4% 6% 4% round 16px);
-    transform: scale(1.08);
-  }
-  55% {
-    opacity: 1;
-    clip-path: inset(0% 0% 0% 0% round 0px);
-  }
-  100% {
-    opacity: 1;
-    clip-path: inset(0% 0% 0% 0% round 0px);
-    transform: scale(1);
-  }
-}
-
-@keyframes cinema-scrim-in {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
-}
-
-@keyframes cinema-brand-in {
-  from { opacity: 0; transform: translate3d(0, -10px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes cinema-line-up {
-  from { opacity: 0; transform: translate3d(0, 102%, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes cinema-fade-up {
-  from { opacity: 0; transform: translate3d(0, 12px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes rule-draw {
-  from { transform: scaleX(0); opacity: 0; }
-  to { transform: scaleX(1); opacity: 1; }
-}
-
-/* ==========================================================================
-   MICROINTERACOES, STAGE, FIDELIDADE & LIGHTBOX
-   ========================================================================== */
-@keyframes fade-up {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes stage-enter {
-  from { opacity: 0; transform: translate3d(var(--stage-dx, 12px), 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes sheet-up {
-  from { opacity: 0; transform: translate3d(0, 22px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-@keyframes slot-pop {
-  0% { transform: scale(0.93); }
-  60% { transform: scale(1.04); }
-  100% { transform: scale(1); }
-}
-
-@keyframes confirm-pop {
-  0% { opacity: 0; transform: scale(0.72); }
-  65% { opacity: 1; transform: scale(1.06); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes stamp-in {
-  0% { opacity: 0; transform: scale(0.68); }
-  70% { opacity: 1; transform: scale(1.08); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes progress-grow {
-  from { transform: scaleX(0.08); }
-  to { transform: scaleX(1); }
-}
-
-@keyframes shimmer-move {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
-
-@keyframes lightbox-slide {
-  from { opacity: 0; transform: translate3d(var(--lb-dx, 16px), 0, 0) scale(0.985); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.85); }
-}
-
-.live-dot {
-  animation: pulse-soft 2.4s ease-in-out infinite;
-}
-
-.lightbox-frame {
-  animation: lightbox-slide 240ms var(--ease-editorial) both;
-}
-
-/* ==========================================================================
-   LOW-POWER MODE & PREFERS-REDUCED-MOTION
-   ========================================================================== */
-.app[data-motion="lite"] .media-frame--curtain img,
-.app[data-motion="lite"] .media-frame--wipe img {
-  clip-path: none;
-  transform: none;
-}
+.app[data-motion="lite"] .media-frame--curtain::after,
+.app[data-motion="lite"] .media-frame--wipe::after { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --dur-tap: 1ms;
-    --dur-micro: 1ms;
-    --dur-component: 1ms;
-    --dur-page: 1ms;
-    --dur-photo: 1ms;
-    --dur-cinema: 1ms;
-  }
-
-  html {
-    scroll-behavior: auto;
-  }
-
-  .reveal {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .media-frame--curtain img,
-  .media-frame--wipe img {
-    clip-path: none !important;
-    transform: none !important;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  :root { --dur-tap: 1ms; --dur-micro: 1ms; --dur-component: 1ms; --dur-page: 1ms; --dur-photo: 1ms; --dur-cinema: 1ms; }
+  html { scroll-behavior: auto; }
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  html[data-route-dir]::view-transition-old(root),
+  html[data-route-dir]::view-transition-new(root) { animation: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; clip-path: none !important; }
+  .media-frame::after { display: none !important; }
+  .media-frame img { opacity: 1 !important; clip-path: none !important; transform: none !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

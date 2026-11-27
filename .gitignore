@@ -33,15 +33,21 @@ build/
 .vscode/
 
 /dados/
+/data/
 /backups/
 /logs/
+/referencia-final/
 /src/main/frontend/dist/
+/backend-fonte.txt
+/frontend-fonte.txt
+/PUBLICAR_GITHUB.cmd
 *.mv.db
 *.trace.db
 
 node_modules/
 dist/
 runtime/
+evidencias-*/
 *.zip
 *.log
 .env
@@ -49,3 +55,4 @@ runtime/
 !.env.example
 *.pem
 *.key
+vapid.properties

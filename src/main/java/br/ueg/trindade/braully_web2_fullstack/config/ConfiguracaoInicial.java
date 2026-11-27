@@ -59,8 +59,8 @@ class DadosIniciais {
         var b = new Barbearia();
         b.nome = demo ? "Studio Soldado do Corte" : "Minha barbearia";
         b.descricao = "Corte, barba e acabamento com horário marcado.";
-        b.corDestaque = "#D4BD98";
-        b.corFundo = "#121212";
+        b.corDestaque = MarcaService.COR_DESTAQUE_PADRAO;
+        b.corFundo = MarcaService.COR_FUNDO_PADRAO;
         b.meta = 10;
         b.antecedenciaMinutos = 120;
         b.demonstracao = demo;

@@ -1,0 +1,59 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SOLDADO_BIND: "0.0.0.0"
+      SOLDADO_PORT: "8080"
+      SOLDADO_DB_URL: "jdbc:h2:file:/app/dados/barbearia;LOCK_TIMEOUT=15000"
+      SOLDADO_DB_USER: "${SOLDADO_DB_USER:-sa}"
+      SOLDADO_DB_PASSWORD: "${SOLDADO_DB_PASSWORD:-}"
+      SOLDADO_DEMO: "${SOLDADO_DEMO:-true}"
+      SOLDADO_ADMIN_PASSWORD: "${SOLDADO_ADMIN_PASSWORD:-}"
+      SOLDADO_JWT_SECRET: "${SOLDADO_JWT_SECRET:-}"
+      SOLDADO_JWT_TTL: "${SOLDADO_JWT_TTL:-28800000}"
+      SOLDADO_VAPID_FILE: "/app/dados/vapid.properties"
+      SOLDADO_VAPID_PUBLIC_KEY: "${SOLDADO_VAPID_PUBLIC_KEY:-}"
+      SOLDADO_VAPID_PRIVATE_KEY: "${SOLDADO_VAPID_PRIVATE_KEY:-}"
+      SOLDADO_VAPID_SUBJECT: "${SOLDADO_VAPID_SUBJECT:-mailto:contato@soldadodocorte.local}"
+      SOLDADO_VAPID_ALLOW_LOOPBACK_HTTP: "${SOLDADO_VAPID_ALLOW_LOOPBACK_HTTP:-false}"
+    stop_grace_period: 25s
+    volumes:
+      - barbearia_dados:/app/dados
+    networks:
+      - barbearia_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/publico/barbearia >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+
+  frontend:
+    build:
+      context: ./src/main/frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 10s
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - barbearia_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  barbearia_dados:
+
+networks:
+  barbearia_net:
+    driver: bridge

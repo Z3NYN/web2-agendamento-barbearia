@@ -48,6 +48,12 @@ public class BarbeariaController {
     @PreAuthorize("hasRole('ADMIN')")
     public MarcaService.Marca editar(@Valid @RequestBody MarcaService.Entrada entrada) { return marca.atualizar(entrada); }
 
+    @PutMapping("/barbearia/tema")
+    @PreAuthorize("hasRole('ADMIN')")
+    public MarcaService.Marca editarTema(@Valid @RequestBody MarcaService.EntradaTema entrada) {
+        return marca.atualizarTema(entrada);
+    }
+
     @PostMapping(path = "/barbearia/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public MarcaService.Marca logo(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {

@@ -47,9 +47,13 @@ public class SecurityConfig {
                         .authenticationEntryPoint((req, res, erro) -> responder(res, 401, "Entre na sua conta para continuar."))
                         .accessDeniedHandler((req, res, erro) -> responder(res, 403, "Você não tem permissão para esta operação.")))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC, jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/login", "/api/cadastro").permitAll()
+                        .requestMatchers("/api/usuarios/**", "/api/permissoes/**", "/api/servicos/**",
+                                "/api/barbeiros/**", "/api/expedientes/**", "/api/bloqueios/**",
+                                "/api/barbearia/**", "/api/fotos/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
