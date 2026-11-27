@@ -50,3 +50,34 @@ Acesse **http://localhost:8080** (ou pelo IP local da máquina no celular).
 ```powershell
 .\mvnw.cmd test
 ```
+flowchart TB
+    subgraph A["Acesso à aplicação"]
+        direction LR
+        U["Cliente<br/>Barbeiro<br/>Administrador"]
+        W["Navegador<br/>React · TypeScript · Vite<br/>PWA · Service Worker"]
+        P["Serviço externo<br/>Web Push"]
+
+        U --> W
+        P -->|Notificações| W
+    end
+
+    subgraph D["Docker Compose"]
+        direction LR
+
+        F["Container Frontend<br/>Nginx"]
+
+        subgraph B["Container Backend"]
+            direction TB
+            S["Java 21 · Spring Boot<br/>REST API · Security · JWT"]
+            H[("Banco de dados H2")]
+            S <-->|JPA / Hibernate| H
+        end
+
+        V[("Volume persistente<br/>Dados H2 · Chaves VAPID")]
+
+        F <-->|REST / SSE| B
+        B <-->|Persistência| V
+    end
+
+    A <-->|Navegador ↔ Nginx · HTTP / JSON / SSE| D
+    D -.->|Backend → Serviço Push · VAPID| A
