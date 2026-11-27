@@ -1,4 +1,4 @@
-# Sistema Web de Agendamento
+# Studio Soldado do Corte — Sistema Web de Agendamento
 
 Projeto da disciplina **Desenvolvimento Web II** da **Universidade Estadual de Goiás (UEG)**, ministrada pelo professor **Braully Rocha da Silva**. Evolução da base da N1 para um sistema comercial completo de agendamento, gestão administrativa e programa de fidelidade para barbearias.
 

@@ -25,6 +25,7 @@ export default function Layout() {
   const logo = logoMarca(marca);
   const wordmarkIntegrado = ehWordmarkOficial(logo);
 
+  const entradaPublica = pathname === "/" && !sessao;
   const aberturaImersiva = pathname === "/" && !sessao && !aberturaVista;
 
   useEffect(() => {
@@ -53,11 +54,11 @@ export default function Layout() {
       void limparInscricaoPushLocal();
       sair();
       abrir(false);
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     }
   }
 
-  if (aberturaImersiva) {
+  if (entradaPublica || aberturaImersiva) {
     return <main id="conteudo" className="splash-shell"><Outlet /></main>;
   }
 

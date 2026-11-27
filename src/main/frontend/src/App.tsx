@@ -2,6 +2,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import { MarcaProvider } from "./components/MarcaContext";
 import Home from "./pages/Home";
+import LandingPage from "./pages/LandingPage";
 import PainelPage from "./pages/PainelPage";
 import { EquipePublica, GaleriaPage, ServicosPublicos } from "./pages/VitrinePages";
 import LoginPage from "./pages/LoginPage";
@@ -17,8 +18,16 @@ import PerfilPage from "./pages/PerfilPage";
 import { ServicosPage, ProfissionaisPage, ExpedientePage } from "./pages/CatalogoPages";
 import { ClientesPage, ClientePage } from "./pages/ClientesPage";
 import MarcaPage from "./pages/MarcaPage";
-import { obterToken, temPapel } from "./services/auth";
+import { obterSessao, obterToken, temPapel } from "./services/auth";
 import { Titulo } from "./components/Interface";
+
+function RotaInicial() {
+  const autenticado = Boolean(obterToken() && obterSessao());
+  if (!autenticado) return <LandingPage />;
+  if (temPapel("ADMIN")) return <Navigate to="/painel" replace />;
+  if (temPapel("BARBEIRO")) return <Navigate to="/agenda" replace />;
+  return <Home />;
+}
 
 function RequireAuth({ papeis }: { papeis?: string[] }) {
   const { pathname, search } = useLocation();
@@ -34,7 +43,7 @@ export default function App() {
     <MarcaProvider>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Home />} />
+          <Route index element={<RotaInicial />} />
           <Route path="inicio" element={<Home />} />
           <Route path="catalogo" element={<ServicosPublicos />} />
           <Route path="equipe" element={<EquipePublica />} />

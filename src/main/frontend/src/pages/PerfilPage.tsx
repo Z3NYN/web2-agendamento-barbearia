@@ -75,7 +75,7 @@ export default function PerfilPage() {
     finally {
       void limparInscricaoPushLocal();
       sair();
-      navegar("/login", { replace: true });
+      navegar("/", { replace: true });
     }
   }
 
