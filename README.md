@@ -50,6 +50,9 @@ Acesse **http://localhost:8080** (ou pelo IP local da máquina no celular).
 ```powershell
 .\mvnw.cmd test
 ```
+## Arquitetura do Sistema
+
+```mermaid
 flowchart TB
     subgraph A["Acesso à aplicação"]
         direction LR
@@ -63,7 +66,7 @@ flowchart TB
 
     subgraph D["Docker Compose"]
         direction LR
-
+```
         F["Container Frontend<br/>Nginx"]
 
         subgraph B["Container Backend"]
