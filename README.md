@@ -53,35 +53,16 @@ Acesse **http://localhost:8080** (ou pelo IP local da máquina no celular).
 ## Arquitetura do Sistema
 
 ```mermaid
-flowchart TB
-    subgraph WEB["Acesso à aplicação"]
-        direction LR
-        U["Cliente · Barbeiro · Administrador"]
-        W["Navegador<br/>React · TypeScript · PWA"]
-        P["Serviço externo de Web Push"]
+flowchart LR
+    A["Cliente · Barbeiro · Admin<br/>React · TypeScript · PWA"]
+    B["Frontend<br/>Nginx · Vite"]
+    C["Backend<br/>Java 21 · Spring Boot<br/>Security · JWT · JPA · H2"]
+    D[("Volume Docker<br/>Dados · Chaves VAPID")]
+    E["Serviço Web Push"]
 
-        U --> W
-        P -->|Service Worker| W
-    end
-
-    subgraph D["Docker Compose"]
-        direction LR
-        F["Container Frontend<br/>Nginx"]
-
-        subgraph B["Container Backend"]
-            direction TB
-            S["Java 21 · Spring Boot<br/>REST API · Security · JWT"]
-            H[("Banco H2")]
-            S <-->|JPA / Hibernate| H
-        end
-
-        V[("Volume persistente<br/>barbearia_dados")]
-
-        F <-->|Proxy REST / SSE| S
-        H -->|Dados| V
-        S -->|Chaves VAPID| V
-    end
-
-    W <-->|HTTP / JSON / SSE| F
-    S -->|Web Push / VAPID| P
+    A <-->|HTTP| B
+    B <-->|REST / SSE| C
+    C -->|Persistência| D
+    C -->|VAPID| E
+    E -->|Service Worker| A
 ```
