@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { data, dataHora, dataHoraCurta, dataIsoValida, hoje, hora, mensagem, moeda, statusTexto } from "../services/formato";
 import { useConsulta } from "../services/useConsulta";
-import { obterSessao, temPapel } from "../services/auth";
+import { obterSessao, temPapel, temPermissao } from "../services/auth";
 import { Aviso, Campo, SkeletonList, SkeletonSlots, Titulo, Vazio } from "../components/Interface";
 import Botao from "../components/Botao";
 import { FotoEditorial } from "../components/Experiencia";
@@ -41,7 +41,8 @@ function dataNoIntervalo(valor: string | null) {
 export default function AgendarPage() {
   const [params] = useSearchParams();
   const sessao = obterSessao();
-  const admin = temPapel("ADMIN");
+  const admin = temPermissao("AGENDAMENTOS_GERENCIAR");
+  const podeVerFidelidadeCliente = temPermissao("FIDELIDADE_ADMINISTRAR");
   const clienteLogado = temPapel("CLIENTE");
 
   const inicial = (() => {
@@ -91,8 +92,10 @@ export default function AgendarPage() {
   const { marca } = useMarca();
   const servicos = useConsulta<Servico[]>("/publico/servicos");
   const barbeiros = useConsulta<Barbeiro[]>("/publico/barbeiros");
-  const clientes = useConsulta<Usuario[]>(admin ? "/usuarios" : null);
-  const cartao = useConsulta<Cartao>(admin ? (cliente ? `/fidelidade/${cliente}` : null) : clienteLogado ? "/fidelidade" : null);
+  const clientes = useConsulta<Usuario[]>(admin ? "/usuarios/clientes" : null);
+  const cartao = useConsulta<Cartao>(
+    admin && podeVerFidelidadeCliente ? (cliente ? `/fidelidade/${cliente}` : null) : clienteLogado ? "/fidelidade" : null
+  );
 
   const beneficios = cartao.dados?.historico.filter(
     m => m.tipo === "RECOMPENSA" && !m.agendamentoId && !m.resgatadoEm && m.servicoId?.toString() === servico

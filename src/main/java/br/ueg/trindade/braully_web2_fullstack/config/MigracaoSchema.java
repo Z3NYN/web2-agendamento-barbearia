@@ -91,7 +91,7 @@ public class MigracaoSchema {
     }
 
     /**
-     * Aplica e valida as colunas de preferência de notificação na tabela {@code usuario}.
+     * Aplica e valida as colunas obrigatórias nas tabelas {@code usuario} e {@code permissao}.
      * Falha imediatamente em caso de erro de banco para impedir inicialização inconsistente.
      */
     public static void executarMigracao(DataSource dataSource) {
@@ -99,61 +99,129 @@ public class MigracaoSchema {
             String catalog = conn.getCatalog();
             String schema = conn.getSchema();
             DatabaseMetaData meta = conn.getMetaData();
-
-            String tabelaUsuario = encontrarTabelaUsuario(meta, catalog, schema);
-            if (tabelaUsuario == null) {
-                log.info("Tabela usuario ainda não existe; Hibernate criará o esquema inicial com defaults.");
-                return;
-            }
-
-            Map<String, InfoColuna> colunasExistentes = mapearColunas(meta, catalog, schema, tabelaUsuario);
             int alteracoes = 0;
 
-            try (Statement stmt = conn.createStatement()) {
-                for (ColunaObrigatoria coluna : COLUNAS_USUARIO_NOTIF) {
-                    String literal = coluna.padrao() ? "TRUE" : "FALSE";
-                    InfoColuna info = colunasExistentes.get(coluna.nome());
-                    if (info == null) {
-                        stmt.execute("ALTER TABLE usuario ADD COLUMN " + coluna.nome()
-                                + " BOOLEAN DEFAULT " + literal + " NOT NULL");
-                        alteracoes++;
-                    } else {
-                        if (info.anulavel()) {
-                            stmt.execute("UPDATE usuario SET " + coluna.nome() + " = " + literal
-                                    + " WHERE " + coluna.nome() + " IS NULL");
-                        }
-                        if (info.valorPadrao() == null || info.valorPadrao().isBlank()) {
-                            stmt.execute("ALTER TABLE usuario ALTER COLUMN " + coluna.nome()
-                                    + " SET DEFAULT " + literal);
-                            alteracoes++;
-                        }
-                        if (info.anulavel()) {
-                            stmt.execute("ALTER TABLE usuario ALTER COLUMN " + coluna.nome()
-                                    + " SET NOT NULL");
-                            alteracoes++;
-                        }
-                    }
-                }
-                stmt.executeQuery(
-                        "SELECT notif_sistema, notif_push, notif_lembretes, notif_fidelidade FROM usuario WHERE 1 = 0")
-                        .close();
+            String tabelaUsuario = encontrarTabela(meta, catalog, schema, "usuario");
+            if (tabelaUsuario == null) {
+                log.info("Tabela usuario ainda não existe; Hibernate criará o esquema inicial com defaults.");
+            } else {
+                alteracoes += migrarTabelaUsuario(conn, meta, catalog, schema, tabelaUsuario);
+            }
+
+            String tabelaPermissao = encontrarTabela(meta, catalog, schema, "permissao");
+            if (tabelaPermissao == null) {
+                log.info("Tabela permissao ainda não existe; Hibernate criará o esquema inicial com defaults.");
+            } else {
+                alteracoes += migrarTabelaPermissao(conn, meta, catalog, schema, tabelaPermissao);
             }
 
             if (!conn.getAutoCommit()) {
                 conn.commit();
             }
-            log.info("Migração de esquema da tabela usuario concluída ({} alterações aplicadas).", alteracoes);
+            log.info("Migração de esquema concluída ({} alterações aplicadas).", alteracoes);
         } catch (SQLException e) {
-            throw new IllegalStateException("Falha crítica ao migrar esquema obrigatório da tabela usuario.", e);
+            throw new IllegalStateException("Falha crítica ao migrar esquema obrigatório.", e);
         }
     }
 
-    private static String encontrarTabelaUsuario(DatabaseMetaData meta, String catalog, String schema)
+    private static int migrarTabelaUsuario(Connection conn, DatabaseMetaData meta, String catalog, String schema, String tabelaUsuario)
+            throws SQLException {
+        Map<String, InfoColuna> colunasExistentes = mapearColunas(meta, catalog, schema, tabelaUsuario);
+        int alteracoes = 0;
+        try (Statement stmt = conn.createStatement()) {
+            for (ColunaObrigatoria coluna : COLUNAS_USUARIO_NOTIF) {
+                String literal = coluna.padrao() ? "TRUE" : "FALSE";
+                InfoColuna info = colunasExistentes.get(coluna.nome());
+                if (info == null) {
+                    stmt.execute("ALTER TABLE usuario ADD COLUMN " + coluna.nome()
+                            + " BOOLEAN DEFAULT " + literal + " NOT NULL");
+                    alteracoes++;
+                } else {
+                    if (info.anulavel()) {
+                        stmt.execute("UPDATE usuario SET " + coluna.nome() + " = " + literal
+                                + " WHERE " + coluna.nome() + " IS NULL");
+                    }
+                    if (info.valorPadrao() == null || info.valorPadrao().isBlank()) {
+                        stmt.execute("ALTER TABLE usuario ALTER COLUMN " + coluna.nome()
+                                + " SET DEFAULT " + literal);
+                        alteracoes++;
+                    }
+                    if (info.anulavel()) {
+                        stmt.execute("ALTER TABLE usuario ALTER COLUMN " + coluna.nome()
+                                + " SET NOT NULL");
+                        alteracoes++;
+                    }
+                }
+            }
+            if (!colunasExistentes.containsKey("criado_em")) {
+                stmt.execute("ALTER TABLE usuario ADD COLUMN criado_em TIMESTAMP");
+                alteracoes++;
+            }
+            stmt.executeQuery(
+                    "SELECT notif_sistema, notif_push, notif_lembretes, notif_fidelidade, criado_em FROM usuario WHERE 1 = 0")
+                    .close();
+        }
+        return alteracoes;
+    }
+
+    private static int migrarTabelaPermissao(Connection conn, DatabaseMetaData meta, String catalog, String schema, String tabelaPermissao)
+            throws SQLException {
+        Map<String, InfoColuna> colunas = mapearColunas(meta, catalog, schema, tabelaPermissao);
+        int alteracoes = 0;
+        try (Statement stmt = conn.createStatement()) {
+            if (!colunas.containsKey("titulo")) {
+                stmt.execute("ALTER TABLE permissao ADD COLUMN titulo VARCHAR(120)");
+                alteracoes++;
+            }
+            if (!colunas.containsKey("categoria")) {
+                stmt.execute("ALTER TABLE permissao ADD COLUMN categoria VARCHAR(40)");
+                alteracoes++;
+            }
+            InfoColuna tipoInfo = colunas.get("tipo");
+            if (tipoInfo == null) {
+                stmt.execute("ALTER TABLE permissao ADD COLUMN tipo VARCHAR(20) DEFAULT 'PERMISSAO' NOT NULL");
+                alteracoes++;
+            } else {
+                if (tipoInfo.anulavel()) {
+                    stmt.execute("UPDATE permissao SET tipo = CASE WHEN UPPER(nome) IN ('ADMIN', 'BARBEIRO', 'CLIENTE') THEN 'PERFIL' ELSE 'PERMISSAO' END WHERE tipo IS NULL");
+                }
+                if (tipoInfo.valorPadrao() == null || tipoInfo.valorPadrao().isBlank()) {
+                    stmt.execute("ALTER TABLE permissao ALTER COLUMN tipo SET DEFAULT 'PERMISSAO'");
+                    alteracoes++;
+                }
+                if (tipoInfo.anulavel()) {
+                    stmt.execute("ALTER TABLE permissao ALTER COLUMN tipo SET NOT NULL");
+                    alteracoes++;
+                }
+            }
+            InfoColuna sistemaInfo = colunas.get("sistema");
+            if (sistemaInfo == null) {
+                stmt.execute("ALTER TABLE permissao ADD COLUMN sistema BOOLEAN DEFAULT FALSE NOT NULL");
+                alteracoes++;
+            } else {
+                if (sistemaInfo.anulavel()) {
+                    stmt.execute("UPDATE permissao SET sistema = FALSE WHERE sistema IS NULL");
+                }
+                if (sistemaInfo.valorPadrao() == null || sistemaInfo.valorPadrao().isBlank()) {
+                    stmt.execute("ALTER TABLE permissao ALTER COLUMN sistema SET DEFAULT FALSE");
+                    alteracoes++;
+                }
+                if (sistemaInfo.anulavel()) {
+                    stmt.execute("ALTER TABLE permissao ALTER COLUMN sistema SET NOT NULL");
+                    alteracoes++;
+                }
+            }
+            stmt.executeQuery("SELECT titulo, categoria, tipo, sistema FROM permissao WHERE 1 = 0").close();
+        }
+        return alteracoes;
+    }
+
+    private static String encontrarTabela(DatabaseMetaData meta, String catalog, String schema, String alvo)
             throws SQLException {
         try (ResultSet rs = meta.getTables(catalog, schema, "%", new String[]{"TABLE", "BASE TABLE"})) {
             while (rs.next()) {
                 String nome = rs.getString("TABLE_NAME");
-                if ("usuario".equalsIgnoreCase(nome)) {
+                if (alvo.equalsIgnoreCase(nome)) {
                     return nome;
                 }
             }

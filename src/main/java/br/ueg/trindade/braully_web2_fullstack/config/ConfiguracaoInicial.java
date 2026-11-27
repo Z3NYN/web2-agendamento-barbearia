@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.ueg.trindade.braully_web2_fullstack.model.*;
 import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
 import br.ueg.trindade.braully_web2_fullstack.repository.*;
+import br.ueg.trindade.braully_web2_fullstack.security.PermissaoSistema;
 import br.ueg.trindade.braully_web2_fullstack.service.*;
 
 @Configuration
@@ -49,13 +50,11 @@ class DadosIniciais {
 
     @Transactional(rollbackFor = IOException.class)
     public void inicializar() throws IOException {
+        sincronizarCatalogoPermissoes();
         if (barbearias.count() > 0) return;
         if (!demo && senhaAdmin.isBlank()) {
             throw new IllegalStateException("Para uma instalação nova sem demonstração, defina SOLDADO_ADMIN_PASSWORD.");
         }
-        papel("ADMIN", "Administra a barbearia.");
-        papel("BARBEIRO", "Acompanha os próprios atendimentos.");
-        papel("CLIENTE", "Agenda e consulta os próprios dados.");
         var b = new Barbearia();
         b.nome = demo ? "Studio Soldado do Corte" : "Minha barbearia";
         b.descricao = "Corte, barba e acabamento com horário marcado.";
@@ -69,8 +68,30 @@ class DadosIniciais {
         if (demo) demonstracao(b);
     }
 
-    private void papel(String nome, String descricao) {
-        if (permissoes.findByNome(nome).isEmpty()) permissoes.save(new Permissao(nome, descricao));
+    private void sincronizarCatalogoPermissoes() {
+        for (PermissaoSistema item : PermissaoSistema.values()) {
+            Permissao existente = permissoes.findByNome(item.codigo()).orElse(null);
+            if (existente == null) {
+                permissoes.save(new Permissao(
+                        item.codigo(),
+                        item.tituloPadrao(),
+                        item.descricaoPadrao(),
+                        item.categoria(),
+                        item.tipo(),
+                        true
+                ));
+            } else {
+                if (existente.getTitulo() == null || existente.getTitulo().isBlank()) {
+                    existente.setTitulo(item.tituloPadrao());
+                }
+                if (existente.getDescricao() == null || existente.getDescricao().isBlank()) {
+                    existente.setDescricao(item.descricaoPadrao());
+                }
+                existente.setCategoria(item.categoria());
+                existente.setTipo(item.tipo());
+                existente.setSistema(true);
+            }
+        }
     }
 
     private Usuario conta(String nome, String username, String senha, String papel) {

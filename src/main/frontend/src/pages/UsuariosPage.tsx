@@ -58,7 +58,9 @@ export default function UsuariosPage() {
             <h3><Link to={`/usuarios/${u.id}`} className="row-link">{u.nome}</Link></h3>
             {!u.ativo && <span className="tag">Inativo</span>}
           </div>
-          <p className="text-secondary">{u.username} · {u.permissoes.map(p => p.nome).join(", ")}</p>
+          <p className="text-secondary">
+            @{u.username} · {u.permissoes.map(p => p.titulo || p.nome).join(", ")}
+          </p>
         </>
       )}
       extras={(u, recarregar) => !u.ativo && <Reativar id={u.id} aoAtivar={recarregar} />}

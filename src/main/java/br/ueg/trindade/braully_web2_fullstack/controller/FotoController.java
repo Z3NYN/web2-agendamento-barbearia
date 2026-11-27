@@ -29,7 +29,7 @@ public class FotoController {
     }
 
     @PostMapping(path = "/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_GALERIA_GERENCIAR')")
     public FotoService.FotoView salvar(@RequestParam Foto.Alvo alvo, @RequestParam(required = false) Long cadastroId,
                                       @RequestParam(required = false) String legenda,
                                       @RequestParam(required = false) String categoria,
@@ -38,7 +38,7 @@ public class FotoController {
     }
 
     @DeleteMapping("/fotos/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_GALERIA_GERENCIAR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remover(@PathVariable UUID id) { fotos.remover(id); }
 }

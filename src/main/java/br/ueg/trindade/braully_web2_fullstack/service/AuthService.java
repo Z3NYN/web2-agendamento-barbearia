@@ -1,9 +1,9 @@
 package br.ueg.trindade.braully_web2_fullstack.service;
 
+import java.util.Comparator;
 import java.util.List;
-import org.springframework.security.authentication.BadCredentialsException;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +12,7 @@ import br.ueg.trindade.braully_web2_fullstack.model.Permissao;
 import br.ueg.trindade.braully_web2_fullstack.model.Usuario;
 import br.ueg.trindade.braully_web2_fullstack.repository.UsuarioRepository;
 import br.ueg.trindade.braully_web2_fullstack.security.JwtUtil;
+import br.ueg.trindade.braully_web2_fullstack.security.PermissaoSistema;
 
 @Service
 public class AuthService {
@@ -38,11 +39,13 @@ public class AuthService {
 
         List<String> permissoes = usuario.getPermissoes().stream()
                 .map(Permissao::getNome)
+                .sorted(Comparator.naturalOrder())
                 .toList();
+        List<String> permissoesEfetivas = PermissaoSistema.codigosEfetivos(usuario.getPermissoes());
 
-        return new LoginResposta(jwtUtil.gerarToken(usuario), usuario.getNome(), permissoes);
+        return new LoginResposta(jwtUtil.gerarToken(usuario), usuario.getNome(), permissoes, permissoesEfetivas);
     }
 
-    public record LoginResposta(String token, String nome, List<String> permissoes) {
+    public record LoginResposta(String token, String nome, List<String> permissoes, List<String> permissoesEfetivas) {
     }
 }

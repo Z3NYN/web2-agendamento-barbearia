@@ -51,9 +51,30 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/login", "/api/cadastro").permitAll()
-                        .requestMatchers("/api/usuarios/**", "/api/permissoes/**", "/api/servicos/**",
-                                "/api/barbeiros/**", "/api/expedientes/**", "/api/bloqueios/**",
-                                "/api/barbearia/**", "/api/fotos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/clientes/**").hasAnyAuthority(
+                                "PERM_CLIENTES_GERENCIAR", "PERM_AGENDAMENTOS_GERENCIAR", "PERM_FIDELIDADE_ADMINISTRAR")
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/barbeiros").hasAuthority("PERM_PROFISSIONAIS_GERENCIAR")
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios", "/api/usuarios/*/permissoes").hasAnyAuthority(
+                                "PERM_USUARIOS_GERENCIAR", "PERM_ACESSOS_ATRIBUIR")
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/*/permissoes").hasAuthority("PERM_ACESSOS_ATRIBUIR")
+                        .requestMatchers("/api/usuarios/**").hasAuthority("PERM_USUARIOS_GERENCIAR")
+                        .requestMatchers(HttpMethod.GET, "/api/permissoes/**").hasAnyAuthority(
+                                "PERM_PERMISSOES_GERENCIAR", "PERM_ACESSOS_ATRIBUIR")
+                        .requestMatchers("/api/permissoes/**").hasAuthority("PERM_PERMISSOES_GERENCIAR")
+                        .requestMatchers(HttpMethod.GET, "/api/servicos/**").hasAnyAuthority(
+                                "PERM_SERVICOS_GERENCIAR", "PERM_FIDELIDADE_ADMINISTRAR", "PERM_MARCA_PERSONALIZAR")
+                        .requestMatchers("/api/servicos/**").hasAuthority("PERM_SERVICOS_GERENCIAR")
+                        .requestMatchers(HttpMethod.GET, "/api/barbeiros/**").hasAnyAuthority(
+                                "PERM_PROFISSIONAIS_GERENCIAR", "PERM_DISPONIBILIDADE_GERENCIAR")
+                        .requestMatchers("/api/barbeiros/**").hasAuthority("PERM_PROFISSIONAIS_GERENCIAR")
+                        .requestMatchers("/api/expedientes/**", "/api/bloqueios/**").hasAuthority("PERM_DISPONIBILIDADE_GERENCIAR")
+                        .requestMatchers(HttpMethod.PUT, "/api/barbearia/fidelidade").hasAuthority("PERM_FIDELIDADE_ADMINISTRAR")
+                        .requestMatchers("/api/barbearia/**").hasAuthority("PERM_MARCA_PERSONALIZAR")
+                        .requestMatchers("/api/fotos/**").hasAuthority("PERM_GALERIA_GERENCIAR")
+                        .requestMatchers(HttpMethod.GET, "/api/metas/**").hasAnyAuthority("PERM_DASHBOARD_ANALITICO", "PERM_METAS_GERENCIAR")
+                        .requestMatchers("/api/metas/**").hasAuthority("PERM_METAS_GERENCIAR")
+                        .requestMatchers("/api/clientes/retencao/**").hasAuthority("PERM_CLIENTES_GERENCIAR")
+                        .requestMatchers("/api/painel/**").hasAuthority("PERM_DASHBOARD_ANALITICO")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

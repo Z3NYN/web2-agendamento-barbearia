@@ -5,8 +5,11 @@ import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+import br.ueg.trindade.braully_web2_fullstack.security.PermissaoSistema;
 import br.ueg.trindade.braully_web2_fullstack.service.*;
 
 @RestController
@@ -45,22 +48,30 @@ public class BarbeariaController {
     public List<CatalogoService.BarbeiroView> barbeiros() { return catalogo.barbeiros(true); }
 
     @PutMapping("/barbearia")
-    @PreAuthorize("hasRole('ADMIN')")
-    public MarcaService.Marca editar(@Valid @RequestBody MarcaService.Entrada entrada) { return marca.atualizar(entrada); }
+    @PreAuthorize("hasAuthority('PERM_MARCA_PERSONALIZAR')")
+    public MarcaService.Marca editar(@Valid @RequestBody MarcaService.Entrada entrada, Authentication auth) {
+        return marca.atualizar(entrada, Identidade.temPermissao(auth, PermissaoSistema.FIDELIDADE_ADMINISTRAR));
+    }
+
+    @PutMapping("/barbearia/fidelidade")
+    @PreAuthorize("hasAuthority('PERM_FIDELIDADE_ADMINISTRAR')")
+    public MarcaService.Marca editarFidelidade(@Valid @RequestBody MarcaService.EntradaFidelidade entrada) {
+        return marca.atualizarFidelidade(entrada);
+    }
 
     @PutMapping("/barbearia/tema")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_MARCA_PERSONALIZAR')")
     public MarcaService.Marca editarTema(@Valid @RequestBody MarcaService.EntradaTema entrada) {
         return marca.atualizarTema(entrada);
     }
 
     @PostMapping(path = "/barbearia/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_MARCA_PERSONALIZAR')")
     public MarcaService.Marca logo(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
         return marca.enviarLogo(arquivo);
     }
 
     @DeleteMapping("/barbearia/logo")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_MARCA_PERSONALIZAR')")
     public MarcaService.Marca removerLogo() { return marca.removerLogo(); }
 }

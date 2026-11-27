@@ -41,7 +41,7 @@ public class AgendamentoController {
     }
 
     @GetMapping("/agendamentos")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    @PreAuthorize("hasAnyRole('BARBEIRO','CLIENTE') or hasAnyAuthority('PERM_AGENDAMENTOS_CONSULTAR','PERM_AGENDAMENTOS_GERENCIAR','PERM_AGENDAMENTOS_CONFIRMAR_CONCLUIR')")
     public List<AgendaService.View> listar(@RequestParam(required = false) LocalDate data,
                                            @RequestParam(required = false) LocalDate ate,
                                            @RequestParam(required = false) Long barbeiroId, Authentication auth) {
@@ -49,45 +49,45 @@ public class AgendamentoController {
     }
 
     @GetMapping("/agendamentos/proximos")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PERM_AGENDAMENTOS_CONSULTAR','PERM_AGENDAMENTOS_GERENCIAR','PERM_AGENDAMENTOS_CONFIRMAR_CONCLUIR')")
     public List<AgendaService.View> proximosDaSemana() { return agenda.proximosDaSemana(); }
 
     @GetMapping("/agendamentos/cliente/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PERM_CLIENTES_GERENCIAR','PERM_AGENDAMENTOS_GERENCIAR','PERM_FIDELIDADE_ADMINISTRAR')")
     public List<AgendaService.View> cliente(@PathVariable Long id) { return agenda.listarCliente(id, true); }
 
     @GetMapping("/agendamentos/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    @PreAuthorize("hasAnyRole('BARBEIRO','CLIENTE') or hasAnyAuthority('PERM_AGENDAMENTOS_CONSULTAR','PERM_AGENDAMENTOS_GERENCIAR','PERM_AGENDAMENTOS_CONFIRMAR_CONCLUIR')")
     public AgendaService.View buscar(@PathVariable Long id, Authentication auth) { return agenda.buscar(id, auth); }
 
     @GetMapping("/agendamentos/{id}/horarios")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    @PreAuthorize("hasAnyRole('BARBEIRO','CLIENTE') or hasAuthority('PERM_AGENDAMENTOS_GERENCIAR')")
     public List<LocalDateTime> horarios(@PathVariable Long id, @RequestParam Long barbeiroId,
                                         @RequestParam LocalDate data, Authentication auth) {
         return agenda.horariosReagendamento(id, barbeiroId, data, auth);
     }
 
     @PostMapping("/agendamentos")
-    @PreAuthorize("hasAnyRole('ADMIN','CLIENTE')")
+    @PreAuthorize("hasRole('CLIENTE') or hasAuthority('PERM_AGENDAMENTOS_GERENCIAR')")
     public AgendaService.View criar(@Valid @RequestBody AgendaService.Nova entrada, Authentication auth) {
         return agenda.criar(entrada, auth);
     }
 
     @PutMapping("/agendamentos/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    @PreAuthorize("hasAnyRole('BARBEIRO','CLIENTE') or hasAuthority('PERM_AGENDAMENTOS_GERENCIAR')")
     public AgendaService.View reagendar(@PathVariable Long id, @Valid @RequestBody AgendaService.Reagendar entrada,
                                         Authentication auth) {
         return agenda.reagendar(id, entrada, auth);
     }
 
     @PutMapping("/agendamentos/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO')")
+    @PreAuthorize("hasRole('BARBEIRO') or hasAuthority('PERM_AGENDAMENTOS_CONFIRMAR_CONCLUIR')")
     public AgendaService.View status(@PathVariable Long id, @Valid @RequestBody AlterarStatus entrada, Authentication auth) {
         return agenda.status(id, entrada.status(), auth);
     }
 
     @DeleteMapping("/agendamentos/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','BARBEIRO','CLIENTE')")
+    @PreAuthorize("hasAnyRole('BARBEIRO','CLIENTE') or hasAuthority('PERM_AGENDAMENTOS_GERENCIAR')")
     public AgendaService.View cancelar(@PathVariable Long id, Authentication auth) {
         return agenda.status(id, Status.CANCELADO, auth);
     }

@@ -10,7 +10,7 @@ import { useMotionPrefs, useSmoothNavigate } from "../motion/useMotion";
 import { compararInicioAsc, dataHora, dataHoraCurta, iniciais, instanteAgenda, statusTexto } from "../services/formato";
 import { useAgora } from "../services/useAgora";
 import { useConsulta } from "../services/useConsulta";
-import { obterSessao, temPapel } from "../services/auth";
+import { obterSessao, temAlgumaPermissao, temPapel } from "../services/auth";
 import { logoMarca } from "../services/marcaLogo";
 import { aberturaDemo, fotoServico, fotoProfissional, interiorDemo } from "../services/fotosDemo";
 import { BuscaVitrine, buscaVitrine, CardProfissional, CardServico } from "./VitrinePages";
@@ -34,7 +34,9 @@ export default function Home() {
   const fotos = useFotos();
   const sessao = obterSessao();
   const cliente = temPapel("CLIENTE");
-  const equipe = temPapel("ADMIN") || temPapel("BARBEIRO");
+  const equipe = temPapel("BARBEIRO") || temAlgumaPermissao(
+    "AGENDAMENTOS_CONSULTAR", "AGENDAMENTOS_GERENCIAR", "AGENDAMENTOS_CONFIRMAR_CONCLUIR"
+  );
   const agenda = useConsulta<Agendamento[]>(cliente ? "/agendamentos" : null);
   const cartao = useConsulta<Cartao>(cliente && marca?.fidelidadeAtiva ? "/fidelidade" : null);
 

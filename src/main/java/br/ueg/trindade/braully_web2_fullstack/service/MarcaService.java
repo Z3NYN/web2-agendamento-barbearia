@@ -64,6 +64,7 @@ public class MarcaService {
                           @Size(max = 15) @Pattern(regexp = "(?:[1-9][0-9]{7,14})?") String whatsapp) {}
     public record EntradaTema(@NotBlank @Pattern(regexp = "#[0-9a-fA-F]{6}") String corDestaque,
                               @NotBlank @Pattern(regexp = "#[0-9a-fA-F]{6}") String corFundo) {}
+    public record EntradaFidelidade(boolean fidelidadeAtiva, @Min(1) @Max(100) int meta, Long premioId) {}
     public record Marca(String nome, String descricao, String endereco, String telefone, String corDestaque,
                         String corFundo, String logo, boolean demonstracao, boolean fidelidadeAtiva, int meta,
                         Long premioId, String nomePremio, int antecedenciaMinutos, String instagram, String whatsapp) {}
@@ -126,13 +127,13 @@ public class MarcaService {
     }
 
     public Marca atualizar(Entrada e) {
+        return atualizar(e, true);
+    }
+
+    public Marca atualizar(Entrada e, boolean alteraFidelidade) {
         String corFundo = validarCorFundo(e.corFundo());
         String corDestaque = normalizarHexValido(e.corDestaque(), COR_DESTAQUE_PADRAO);
         Barbearia b = instalacao.bloquear();
-        Servico premio = e.premioId() == null ? null : catalogo.servico(e.premioId());
-        if (e.fidelidadeAtiva() && (premio == null || !premio.ativo)) {
-            throw Regra.invalida("Escolha um serviço ativo como recompensa.");
-        }
         b.nome = e.nome().strip();
         b.descricao = e.descricao();
         b.endereco = e.endereco();
@@ -142,11 +143,27 @@ public class MarcaService {
         b.corDestaque = corDestaque;
         b.corFundo = corFundo;
         b.demonstracao = e.demonstracao();
-        b.fidelidadeAtiva = e.fidelidadeAtiva();
-        b.meta = e.meta();
-        b.premio = premio;
         b.antecedenciaMinutos = e.antecedenciaMinutos();
+        if (alteraFidelidade) {
+            aplicarFidelidade(b, e.fidelidadeAtiva(), e.meta(), e.premioId());
+        }
         return view(b);
+    }
+
+    public Marca atualizarFidelidade(EntradaFidelidade e) {
+        Barbearia b = instalacao.bloquear();
+        aplicarFidelidade(b, e.fidelidadeAtiva(), e.meta(), e.premioId());
+        return view(b);
+    }
+
+    private void aplicarFidelidade(Barbearia b, boolean ativa, int meta, Long premioId) {
+        Servico premio = premioId == null ? null : catalogo.servico(premioId);
+        if (ativa && (premio == null || !premio.ativo)) {
+            throw Regra.invalida("Escolha um serviço ativo como recompensa.");
+        }
+        b.fidelidadeAtiva = ativa;
+        b.meta = meta;
+        b.premio = premio;
     }
 
     /**

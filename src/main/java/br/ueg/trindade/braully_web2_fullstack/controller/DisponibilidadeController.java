@@ -10,7 +10,7 @@ import br.ueg.trindade.braully_web2_fullstack.service.DisponibilidadeService.*;
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:5173")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('PERM_DISPONIBILIDADE_GERENCIAR')")
 public class DisponibilidadeController {
     private final DisponibilidadeService disponibilidade;
 

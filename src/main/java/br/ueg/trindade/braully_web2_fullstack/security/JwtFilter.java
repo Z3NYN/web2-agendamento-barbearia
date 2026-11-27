@@ -2,7 +2,6 @@ package br.ueg.trindade.braully_web2_fullstack.security;
 
 import java.io.IOException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -43,11 +42,10 @@ public class JwtFilter extends OncePerRequestFilter {
             usuarios.findWithPermissoesById(Long.valueOf(claims.getSubject()))
                     .filter(u -> u.isAtivo() && versao != null && u.getVersaoSessao() == versao)
                     .ifPresent(usuario -> {
-                        var papeis = usuario.getPermissoes().stream()
-                                .map(p -> new SimpleGrantedAuthority("ROLE_" + p.getNome())).toList();
+                        var autoridades = PermissaoSistema.construirAutoridades(usuario.getPermissoes());
                         var identidade = new Identidade(usuario.getId(), usuario.getUsername());
                         SecurityContextHolder.getContext().setAuthentication(
-                                new UsernamePasswordAuthenticationToken(identidade, null, papeis));
+                                new UsernamePasswordAuthenticationToken(identidade, null, autoridades));
                     });
         } catch (JwtException | IllegalArgumentException ignored) {
             SecurityContextHolder.clearContext();

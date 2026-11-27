@@ -130,6 +130,7 @@ export default function NotificacoesBell() {
                   return { naoLidas: anterior.naoLidas + (nova.lida ? 0 : 1), itens: [nova, ...anterior.itens].slice(0, 40) };
                 });
                 setAvisoLive(nova);
+                window.dispatchEvent(new CustomEvent("soldado:agenda-atualizada", { detail: { tipo: nova.tipo } }));
                 window.clearTimeout(toastTimer.current);
                 toastTimer.current = window.setTimeout(() => setAvisoLive(undefined), 5500);
               } catch { /* Ignora evento malformado. */ }

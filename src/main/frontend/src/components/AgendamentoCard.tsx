@@ -10,8 +10,16 @@ import { Aviso } from "./Interface";
 import { PainelModal } from "./Experiencia";
 import EscolherHorario from "./EscolherHorario";
 
-export default function AgendamentoCard({ a, equipe, podeTrocarProfissional, barbeiros, recarregar }: {
-  a: Agendamento; equipe: boolean; podeTrocarProfissional: boolean; barbeiros: Barbeiro[]; recarregar: (msg: string) => void;
+export default function AgendamentoCard({
+  a, equipe, podeTrocarProfissional, podeConfirmarConcluir = true, podeReagendarCancelar = true, barbeiros, recarregar,
+}: {
+  a: Agendamento;
+  equipe: boolean;
+  podeTrocarProfissional: boolean;
+  podeConfirmarConcluir?: boolean;
+  podeReagendarCancelar?: boolean;
+  barbeiros: Barbeiro[];
+  recarregar: (msg: string) => void;
 }) {
   const agora = useAgora();
   const [reagendando, editar] = useState(false);
@@ -69,11 +77,11 @@ export default function AgendamentoCard({ a, equipe, podeTrocarProfissional, bar
       <div className="appt-actions">
         {a.podeAlterar && (
           <>
-            {equipe && a.status === "RESERVADO" && <Botao compacto disabled={ocupado} onClick={() => void executar("CONFIRMADO")}><Check size={14} strokeWidth={2} /> Confirmar</Botao>}
-            {equipe && a.status === "CONFIRMADO" && instanteAgenda(a.fim) <= agora && <Botao compacto disabled={ocupado} onClick={() => void executar("CONCLUIDO")}><Check size={14} strokeWidth={2} /> Concluir</Botao>}
-            <Botao variante="neutro" compacto disabled={ocupado} onClick={() => editar(!reagendando)}>{reagendando ? "Fechar" : "Reagendar"}</Botao>
-            <Botao variante="perigo" compacto disabled={ocupado} onClick={() => setConfirmar("CANCELADO")}>Cancelar</Botao>
-            {equipe && instanteAgenda(a.inicio) <= agora && <Botao variante="fantasma" compacto disabled={ocupado} onClick={() => setConfirmar("FALTOU")}>Registrar falta</Botao>}
+            {equipe && podeConfirmarConcluir && a.status === "RESERVADO" && <Botao compacto disabled={ocupado} onClick={() => void executar("CONFIRMADO")}><Check size={14} strokeWidth={2} /> Confirmar</Botao>}
+            {equipe && podeConfirmarConcluir && a.status === "CONFIRMADO" && instanteAgenda(a.fim) <= agora && <Botao compacto disabled={ocupado} onClick={() => void executar("CONCLUIDO")}><Check size={14} strokeWidth={2} /> Concluir</Botao>}
+            {podeReagendarCancelar && <Botao variante="neutro" compacto disabled={ocupado} onClick={() => editar(!reagendando)}>{reagendando ? "Fechar" : "Reagendar"}</Botao>}
+            {podeReagendarCancelar && <Botao variante="perigo" compacto disabled={ocupado} onClick={() => setConfirmar("CANCELADO")}>Cancelar</Botao>}
+            {equipe && podeConfirmarConcluir && instanteAgenda(a.inicio) <= agora && <Botao variante="fantasma" compacto disabled={ocupado} onClick={() => setConfirmar("FALTOU")}>Registrar falta</Botao>}
           </>
         )}
         {!equipe && (encerrado || !a.podeAlterar) && (

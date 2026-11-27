@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import { ImagePlus, RotateCcw, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "../services/api";
 import { mensagem } from "../services/formato";
 import { logoMarca } from "../services/marcaLogo";
@@ -14,6 +15,7 @@ import {
   validarCorFundo,
 } from "../theme/themeEngine";
 import { useConsulta } from "../services/useConsulta";
+import { temPermissao } from "../services/auth";
 import { useMarca } from "../components/useMarca";
 import { Aviso, Campo, Titulo } from "../components/Interface";
 import { fotoDe, useFotos } from "../components/FotosPublicas";
@@ -23,7 +25,7 @@ import FotosAdmin from "../components/FotosAdmin";
 import Botao from "../components/Botao";
 import type { Marca, Servico } from "../types/Barbearia";
 
-function FormMarca({ inicial }: { inicial: Marca }) {
+function FormMarca({ inicial, modo = "completo" }: { inicial: Marca; modo?: "completo" | "fidelidade" }) {
   const [marca, setMarca] = useState(inicial);
   const fundoInicialValido = validarCorFundo(inicial.corFundo).hex ?? COR_FUNDO_PADRAO;
   const destaqueInicialValido = validarCorDestaque(inicial.corDestaque).hex ?? COR_DESTAQUE_PADRAO;
@@ -50,8 +52,13 @@ function FormMarca({ inicial }: { inicial: Marca }) {
   const [ocupadoTema, setOcupadoTema] = useState(false);
 
   const { atualizar } = useMarca();
+  const podeMarca = temPermissao("MARCA_PERSONALIZAR");
+  const podeFidelidade = temPermissao("FIDELIDADE_ADMINISTRAR");
+  const podeGaleria = temPermissao("GALERIA_GERENCIAR");
   const fotos = useFotos();
-  const servicos = useConsulta<Servico[]>("/servicos");
+  const servicos = useConsulta<Servico[]>(podeFidelidade ? "/servicos" : null);
+  const [feedbackFidelidade, setFeedbackFidelidade] = useState<{ erro?: string; sucesso?: string }>({});
+  const [ocupadoFidelidade, setOcupadoFidelidade] = useState(false);
   const logoAtual = preview || logoMarca(marca);
 
   useEffect(() => () => {
@@ -212,11 +219,33 @@ function FormMarca({ inicial }: { inicial: Marca }) {
     }
   }
 
+  async function salvarFidelidade(e: FormEvent) {
+    e.preventDefault();
+    setOcupadoFidelidade(true);
+    setFeedbackFidelidade({});
+    try {
+      const { data } = await api.put<Marca>("/barbearia/fidelidade", {
+        fidelidadeAtiva: marca.fidelidadeAtiva,
+        meta: marca.meta,
+        premioId: marca.premioId,
+      });
+      atualizar(data);
+      setMarca(m => ({ ...m, fidelidadeAtiva: data.fidelidadeAtiva, meta: data.meta, premioId: data.premioId, nomePremio: data.nomePremio }));
+      setFeedbackFidelidade({ sucesso: "Programa de fidelidade atualizado." });
+    } catch (err) {
+      setFeedbackFidelidade({ erro: mensagem(err) });
+    } finally {
+      setOcupadoFidelidade(false);
+    }
+  }
+
   return (
     <div className="stack">
       <Aviso {...feedback} />
 
-      <div className="surface-card stack-sm">
+      {podeMarca && modo === "completo" && (
+        <>
+          <div className="surface-card stack-sm">
         <div className="section-head">
           <h2 className="section-title">Logotipo da barbearia</h2>
           <div className="swatch-row" aria-hidden="true">
@@ -445,70 +474,96 @@ function FormMarca({ inicial }: { inicial: Marca }) {
           </label>
         </div>
 
-        <h2 className="section-title">Programa de fidelidade</h2>
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={marca.fidelidadeAtiva}
-            onChange={e => alterar("fidelidadeAtiva", e.target.checked)}
-          />
-          <span>Habilitar programa de fidelidade</span>
-        </label>
-
-        <div className="form-grid-2">
-          <Campo nome="Atendimentos para liberar recompensa">
-            <input
-              type="number"
-              min={1}
-              max={100}
-              required
-              value={marca.meta || ""}
-              onChange={e => alterar("meta", e.target.valueAsNumber || 0)}
-            />
-          </Campo>
-          <Campo nome="Serviço da recompensa">
-            <select
-              required={marca.fidelidadeAtiva}
-              value={marca.premioId ?? ""}
-              onChange={e => alterar("premioId", e.target.value ? Number(e.target.value) : null)}
-            >
-              <option value="">Selecione um serviço</option>
-              {servicos.dados?.filter(s => s.ativo).map(s => (
-                <option key={s.id} value={s.id}>{s.nome}</option>
-              ))}
-            </select>
-          </Campo>
-        </div>
-
-        <Aviso erro={servicos.erro} />
-        <p className="text-secondary">Defina quais serviços pontuam no menu Serviços.</p>
         <div>
           <Botao type="submit" disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar configurações"}</Botao>
         </div>
       </form>
+        </>
+      )}
 
-      <section className="surface-card stack-sm">
-        <h2 className="section-title">Foto da abertura</h2>
-        <FotosAdmin alvo="ABERTURA" />
-      </section>
-      <section className="surface-card stack-sm">
-        <h2 className="section-title">Foto do banner principal</h2>
-        <FotosAdmin alvo="CAPA" alterou={fotos.recarregar} />
-      </section>
-      <section className="surface-card stack-sm">
-        <h2 className="section-title">Galeria de trabalhos</h2>
-        <FotosAdmin alvo="GALERIA" />
-      </section>
+      {podeFidelidade && (
+        <form className="surface-card form-stack" onSubmit={salvarFidelidade}>
+          <Aviso {...feedbackFidelidade} />
+          <div className="section-head">
+            <h2 className="section-title">Programa de fidelidade</h2>
+            {modo === "fidelidade" && (
+              <Link className="btn btn--neutro btn--compacto" to="/clientes">Consultar clientes</Link>
+            )}
+          </div>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={marca.fidelidadeAtiva}
+              onChange={e => alterar("fidelidadeAtiva", e.target.checked)}
+            />
+            <span>Habilitar programa de fidelidade</span>
+          </label>
+
+          <div className="form-grid-2">
+            <Campo nome="Atendimentos para liberar recompensa">
+              <input
+                type="number"
+                min={1}
+                max={100}
+                required
+                value={marca.meta || ""}
+                onChange={e => alterar("meta", e.target.valueAsNumber || 0)}
+              />
+            </Campo>
+            <Campo nome="Serviço da recompensa">
+              <select
+                required={marca.fidelidadeAtiva}
+                value={marca.premioId ?? ""}
+                onChange={e => alterar("premioId", e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">Selecione um serviço</option>
+                {servicos.dados?.filter(s => s.ativo).map(s => (
+                  <option key={s.id} value={s.id}>{s.nome}</option>
+                ))}
+              </select>
+            </Campo>
+          </div>
+
+          <Aviso erro={servicos.erro} />
+          <p className="text-secondary">Defina quais serviços pontuam no menu Serviços.</p>
+          <div>
+            <Botao type="submit" disabled={ocupadoFidelidade}>{ocupadoFidelidade ? "Salvando…" : "Salvar fidelidade"}</Botao>
+          </div>
+        </form>
+      )}
+
+      {podeGaleria && modo === "completo" && (
+        <>
+          <section className="surface-card stack-sm">
+            <h2 className="section-title">Foto da abertura</h2>
+            <FotosAdmin alvo="ABERTURA" />
+          </section>
+          <section className="surface-card stack-sm">
+            <h2 className="section-title">Foto do banner principal</h2>
+            <FotosAdmin alvo="CAPA" alterou={fotos.recarregar} />
+          </section>
+          <section className="surface-card stack-sm">
+            <h2 className="section-title">Galeria de trabalhos</h2>
+            <FotosAdmin alvo="GALERIA" />
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
-export default function MarcaPage() {
+export default function MarcaPage({ modo = "completo" }: { modo?: "completo" | "fidelidade" }) {
   const { marca, erro } = useMarca();
   return (
     <section className="stack">
-      <Titulo eyebrow="Personalização" titulo="Marca e fidelidade" detalhe="Gerencie identidade visual, fotografias e regras da barbearia." />
-      {marca ? <FormMarca inicial={marca} /> : <Aviso erro={erro} carregando={!erro} />}
+      <Titulo
+        eyebrow={modo === "fidelidade" ? "Operação" : "Administração"}
+        titulo={modo === "fidelidade" ? "Programa de fidelidade" : "Identidade visual"}
+        detalhe={modo === "fidelidade"
+          ? "Configure quantos atendimentos liberam recompensa e qual serviço é bonificado."
+          : "Gerencie logotipo, paleta do tema, dados comerciais e fotografias da barbearia."}
+      />
+      {marca ? <FormMarca inicial={marca} modo={modo} /> : <Aviso erro={erro} carregando={!erro} />}
     </section>
   );
 }

@@ -23,9 +23,9 @@ public class FidelidadeController {
     public FidelidadeService.Cartao meu(Authentication auth) { return fidelidade.cartao(Identidade.id(auth)); }
 
     @GetMapping("/{clienteId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PERM_FIDELIDADE_ADMINISTRAR')")
     public FidelidadeService.Cartao cliente(@PathVariable Long clienteId) {
-        usuarios.buscarPorId(clienteId);
+        usuarios.buscarClientePorId(clienteId);
         return fidelidade.cartao(clienteId);
     }
 }

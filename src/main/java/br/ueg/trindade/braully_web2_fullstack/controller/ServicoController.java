@@ -11,16 +11,18 @@ import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.EntradaSer
 @RestController
 @RequestMapping("/api/servicos")
 @CrossOrigin(origins = "http://localhost:5173")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('PERM_SERVICOS_GERENCIAR')")
 public class ServicoController {
     private final CatalogoService catalogo;
 
     public ServicoController(CatalogoService catalogo) { this.catalogo = catalogo; }
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('PERM_SERVICOS_GERENCIAR','PERM_FIDELIDADE_ADMINISTRAR','PERM_MARCA_PERSONALIZAR')")
     public List<ServicoView> listar() { return catalogo.servicos(false); }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('PERM_SERVICOS_GERENCIAR','PERM_FIDELIDADE_ADMINISTRAR','PERM_MARCA_PERSONALIZAR')")
     public ServicoView buscar(@PathVariable Long id) { return catalogo.detalheServico(id); }
 
     @PostMapping

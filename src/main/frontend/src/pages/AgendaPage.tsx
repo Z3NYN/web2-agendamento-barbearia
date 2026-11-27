@@ -6,22 +6,38 @@ import { Aviso, Campo, SkeletonList, Titulo, Vazio } from "../components/Interfa
 import AgendamentoCard from "../components/AgendamentoCard";
 import Semana, { somarDias } from "../components/Semana";
 import { AnimatedValue } from "../motion/Primitives";
-import { temPapel } from "../services/auth";
+import { temAlgumaPermissao, temPapel, temPermissao } from "../services/auth";
 import { compararInicioAsc, compararInicioDesc, dataCurta, dataIsoValida, hoje, instanteAgenda, moeda, statusTexto } from "../services/formato";
 import { useConsulta } from "../services/useConsulta";
 import type { Agendamento, Barbeiro, Status } from "../types/Barbearia";
 
+const STATUS_VALIDOS: ReadonlySet<string> = new Set(["RESERVADO", "CONFIRMADO", "CONCLUIDO", "CANCELADO", "FALTOU"]);
+
+function normalizarFiltroStatus(raw: string | null): string {
+  if (!raw) return "";
+  return raw
+    .split(",")
+    .map(s => s.trim().toUpperCase())
+    .filter(s => STATUS_VALIDOS.has(s))
+    .join(",");
+}
+
 export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
   const agora = useAgora();
-  const admin = temPapel("ADMIN");
-  const barbeiroPerfil = equipe && !admin;
+  const escopoTotal = temAlgumaPermissao("AGENDAMENTOS_CONSULTAR", "AGENDAMENTOS_GERENCIAR", "AGENDAMENTOS_CONFIRMAR_CONCLUIR");
+  const podeGerenciar = temPermissao("AGENDAMENTOS_GERENCIAR");
+  const podeConfirmarConcluir = temPermissao("AGENDAMENTOS_CONFIRMAR_CONCLUIR") || (equipe && temPapel("BARBEIRO"));
+  const podeReagendarCancelar = !equipe || podeGerenciar || temPapel("BARBEIRO");
+  const barbeiroPerfil = equipe && !escopoTotal;
   const [params, setParams] = useSearchParams();
   const dia = dataIsoValida(params.get("data"), hoje());
+  const statusParam = params.get("status");
+  const barbeiroParam = params.get("barbeiroId") ?? "";
   const [periodo, setPeriodo] = useState<"dia" | "semana">("dia");
   const [agrupamento, setAgrupamento] = useState<"lista" | "profissional">("lista");
-  const [barbeiro, setBarbeiro] = useState("");
+  const [barbeiro, setBarbeiro] = useState(barbeiroParam);
   const [filtro, setFiltro] = useState<"proximos" | "historico">("proximos");
-  const [situacao, setSituacao] = useState<Status | "">("");
+  const [situacao, setSituacao] = useState<string>(() => normalizarFiltroStatus(statusParam));
   const [sucesso, setSucesso] = useState("");
 
   const barbeiros = useConsulta<Barbeiro[]>("/publico/barbeiros");
@@ -34,8 +50,9 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
 
   const agenda = useConsulta<Agendamento[]>(equipe ? `/agendamentos?${queryEquipe.toString()}` : "/agendamentos", equipe ? 5000 : 0);
 
+  const statusSelecionados = situacao ? situacao.split(",") : [];
   const filtrados = agenda.dados?.filter(a => {
-    if (equipe) return !situacao || situacao === a.status;
+    if (equipe) return statusSelecionados.length === 0 || statusSelecionados.includes(a.status);
     const futuro = (a.status === "RESERVADO" || a.status === "CONFIRMADO") && instanteAgenda(a.fim) > agora;
     return filtro === "proximos" ? futuro : !futuro;
   });
@@ -73,7 +90,7 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
         eyebrow={barbeiroPerfil ? "Área do profissional" : equipe ? "Operação" : "Agenda pessoal"}
         titulo={barbeiroPerfil ? "Minha agenda" : equipe ? "Agenda" : "Meus horários"}
         detalhe={equipe ? (periodo === "semana" ? `Semana de ${dataCurta(dia)} até ${dataCurta(fimSemana)}` : barbeiroPerfil ? "Seus atendimentos do dia atualizados automaticamente." : "Acompanhe e atualize os atendimentos em tempo real.") : "Consulte suas reservas ativas e repita atendimentos anteriores."}
-        acao={(!equipe || admin) && <Link className="btn btn--primario" to="/agendar"><CalendarPlus size={16} strokeWidth={1.9} /> {equipe ? "Nova reserva" : "Agendar"}</Link>}
+        acao={(!equipe || podeGerenciar) && <Link className="btn btn--primario" to="/agendar"><CalendarPlus size={16} strokeWidth={1.9} /> {equipe ? "Nova reserva" : "Agendar"}</Link>}
       />
 
       {equipe ? (
@@ -84,7 +101,7 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
               <button type="button" aria-pressed={periodo === "semana"} onClick={() => setPeriodo("semana")}>Semanal</button>
             </div>
             <div className="agenda-toolbar-right">
-              {admin && (
+              {escopoTotal && (
                 <div className="segmented" role="group" aria-label="Agrupamento">
                   <button type="button" aria-pressed={agrupamento === "lista"} onClick={() => setAgrupamento("lista")}><List size={14} strokeWidth={1.75} /> Horário</button>
                   <button type="button" aria-pressed={agrupamento === "profissional"} onClick={() => setAgrupamento("profissional")}><LayoutGrid size={14} strokeWidth={1.75} /> Equipe</button>
@@ -99,7 +116,7 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
           </div>
           <Semana dia={dia} escolher={selecionarDia} permitirPassado />
           <div className="agenda-filters">
-            {admin && (
+            {escopoTotal && (
               <Campo nome="Profissional">
                 <select value={barbeiro} onChange={e => { setBarbeiro(e.target.value); setSucesso(""); }}>
                   <option value="">Todos os profissionais</option>
@@ -111,6 +128,7 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
               <label>Status</label>
               <div className="chip-group" role="group" aria-label="Filtrar por situação">
                 <button type="button" className="chip" aria-pressed={situacao === ""} onClick={() => setSituacao("")}>Todos</button>
+                <button type="button" className="chip" aria-pressed={situacao === "CANCELADO,FALTOU"} onClick={() => setSituacao("CANCELADO,FALTOU")}>Cancelados e faltas</button>
                 {(Object.entries(statusTexto) as [Status, string][]).map(([chave, nome]) => (
                   <button type="button" key={chave} className="chip" aria-pressed={situacao === chave} onClick={() => setSituacao(chave)}>{nome}</button>
                 ))}
@@ -167,7 +185,16 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
               <div className="barber-column-head"><h2>{grupo.nome}</h2><span className="meta-chip tabular">{grupo.itens.length}</span></div>
               <div className="appt-list-stack">
                 {grupo.itens.map(a => (
-                  <AgendamentoCard key={a.id} a={a} equipe={equipe} podeTrocarProfissional={!equipe || admin} barbeiros={barbeiros.dados ?? []} recarregar={msg => { setSucesso(msg); agenda.recarregar(); }} />
+                  <AgendamentoCard
+                    key={a.id}
+                    a={a}
+                    equipe={equipe}
+                    podeTrocarProfissional={!equipe || podeGerenciar}
+                    podeConfirmarConcluir={podeConfirmarConcluir}
+                    podeReagendarCancelar={podeReagendarCancelar}
+                    barbeiros={barbeiros.dados ?? []}
+                    recarregar={msg => { setSucesso(msg); agenda.recarregar(); }}
+                  />
                 ))}
               </div>
             </section>
@@ -187,7 +214,16 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
               </header>
               <div className="appt-grid">
                 {g.itens.map(a => (
-                  <AgendamentoCard key={a.id} a={a} equipe={equipe} podeTrocarProfissional={!equipe || admin} barbeiros={barbeiros.dados ?? []} recarregar={msg => { setSucesso(msg); agenda.recarregar(); }} />
+                  <AgendamentoCard
+                    key={a.id}
+                    a={a}
+                    equipe={equipe}
+                    podeTrocarProfissional={!equipe || podeGerenciar}
+                    podeConfirmarConcluir={podeConfirmarConcluir}
+                    podeReagendarCancelar={podeReagendarCancelar}
+                    barbeiros={barbeiros.dados ?? []}
+                    recarregar={msg => { setSucesso(msg); agenda.recarregar(); }}
+                  />
                 ))}
               </div>
             </section>
@@ -196,7 +232,16 @@ export default function AgendaPage({ equipe = false }: { equipe?: boolean }) {
       ) : !!lista?.length && (
         <div className="appt-grid">
           {lista.map(a => (
-            <AgendamentoCard key={a.id} a={a} equipe={equipe} podeTrocarProfissional={!equipe || admin} barbeiros={barbeiros.dados ?? []} recarregar={msg => { setSucesso(msg); agenda.recarregar(); }} />
+            <AgendamentoCard
+              key={a.id}
+              a={a}
+              equipe={equipe}
+              podeTrocarProfissional={!equipe || podeGerenciar}
+              podeConfirmarConcluir={podeConfirmarConcluir}
+              podeReagendarCancelar={podeReagendarCancelar}
+              barbeiros={barbeiros.dados ?? []}
+              recarregar={msg => { setSucesso(msg); agenda.recarregar(); }}
+            />
           ))}
         </div>
       )}

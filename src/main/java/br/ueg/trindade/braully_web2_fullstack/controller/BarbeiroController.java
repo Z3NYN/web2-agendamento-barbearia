@@ -11,16 +11,18 @@ import br.ueg.trindade.braully_web2_fullstack.service.CatalogoService.EntradaBar
 @RestController
 @RequestMapping("/api/barbeiros")
 @CrossOrigin(origins = "http://localhost:5173")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('PERM_PROFISSIONAIS_GERENCIAR')")
 public class BarbeiroController {
     private final CatalogoService catalogo;
 
     public BarbeiroController(CatalogoService catalogo) { this.catalogo = catalogo; }
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('PERM_PROFISSIONAIS_GERENCIAR','PERM_DISPONIBILIDADE_GERENCIAR')")
     public List<BarbeiroView> listar() { return catalogo.barbeiros(false); }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('PERM_PROFISSIONAIS_GERENCIAR','PERM_DISPONIBILIDADE_GERENCIAR')")
     public BarbeiroView buscar(@PathVariable Long id) { return catalogo.detalheBarbeiro(id); }
 
     @PostMapping

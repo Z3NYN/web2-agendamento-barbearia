@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { salvarSessao, type Sessao } from "../services/auth";
+import { rotaPadraoSessao, salvarSessao, type Sessao } from "../services/auth";
 import { sincronizarPushSessao } from "../services/pwa";
 import { mensagem } from "../services/formato";
 import Botao from "../components/Botao";
@@ -26,9 +26,9 @@ export default function LoginPage({ cadastro = false }: { cadastro?: boolean }) 
       const { data } = await api.post<Sessao>("/login", { username, senha });
       salvarSessao(data);
       void sincronizarPushSessao();
-      const equipe = data.permissoes.some(p => p === "ADMIN" || p === "BARBEIRO");
+      const padrao = rotaPadraoSessao(data);
       const destino = (state as { destino?: string } | null)?.destino;
-      navigate(equipe ? (data.permissoes.includes("ADMIN") ? "/painel" : "/agenda") : destino ?? "/inicio", { replace: true });
+      navigate(padrao !== "/inicio" ? padrao : destino ?? "/inicio", { replace: true });
     } catch (err) { setErro(mensagem(err)); }
     finally { setOcupado(false); }
   }

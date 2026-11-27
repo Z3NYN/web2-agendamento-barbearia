@@ -9,6 +9,7 @@ import { useMarca } from "../components/useMarca";
 import type { Barbeiro, Servico } from "../types/Barbearia";
 import type { Usuario } from "../types/Usuario";
 import { dataHora, moeda } from "../services/formato";
+import { temPermissao } from "../services/auth";
 import { fotoProfissional, fotoServico } from "../services/fotosDemo";
 import { useConsulta } from "../services/useConsulta";
 
@@ -20,6 +21,7 @@ const basicos: DefCampo[] = [
 export function ServicosPage() {
   const { marca } = useMarca();
   const fotos = useFotos();
+  const podeGaleria = temPermissao("GALERIA_GERENCIAR");
 
   return (
     <CadastroCrud<Servico>
@@ -71,12 +73,12 @@ export function ServicosPage() {
           ),
         },
       ]}
-      detalhes={s => (
+      detalhes={podeGaleria ? s => (
         <details className="catalog-photo">
           <summary><Camera size={14} strokeWidth={1.75} /> Foto do serviço</summary>
           <FotosAdmin alvo="SERVICO" cadastroId={s.id} alterou={fotos.recarregar} />
         </details>
-      )}
+      ) : undefined}
       remover="Desativar"
       podeRemover={s => s.ativo}
     />
@@ -86,10 +88,11 @@ export function ServicosPage() {
 export function ProfissionaisPage() {
   const { marca } = useMarca();
   const fotos = useFotos();
-  const contas = useConsulta<Usuario[]>("/usuarios");
+  const podeGaleria = temPermissao("GALERIA_GERENCIAR");
+  const contas = useConsulta<Usuario[]>("/usuarios/barbeiros");
   const opcoes =
     contas.dados
-      ?.filter(u => u.ativo && u.permissoes.some(p => p.nome === "BARBEIRO"))
+      ?.filter(u => u.ativo)
       .map(u => ({ valor: String(u.id), nome: `${u.nome} (${u.username})` })) ?? [];
 
   return (
@@ -135,12 +138,12 @@ export function ProfissionaisPage() {
           ),
         },
       ]}
-      detalhes={b => (
+      detalhes={podeGaleria ? b => (
         <details className="catalog-photo">
           <summary><Camera size={14} strokeWidth={1.75} /> Foto do profissional</summary>
           <FotosAdmin alvo="BARBEIRO" cadastroId={b.id} alterou={fotos.recarregar} />
         </details>
-      )}
+      ) : undefined}
       aviso={contas.erro}
       remover="Desativar"
       podeRemover={b => b.ativo}

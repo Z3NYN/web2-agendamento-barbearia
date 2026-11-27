@@ -8,6 +8,15 @@ Projeto da disciplina **Desenvolvimento Web II** da **Universidade Estadual de G
 - **Frontend:** React, TypeScript, React Router, Axios, Tailwind CSS e Vite.
 - **Containerização:** Docker multi-stage (Maven/Temurin 21 + Node 22/Nginx unprivileged) e Docker Compose.
 
+## Funcionalidades principais
+
+- **Agendamento online e agenda da equipe:** escolha de serviço, profissional e horário disponível em tempo real, com bloqueios, expedientes e atualização instantânea via Server-Sent Events (SSE).
+- **RBAC funcional por capacidades operacionais:** gestão de perfis e permissões com revogação imediata de sessão no backend (`DASHBOARD_ANALITICO`, `METAS_GERENCIAR`, `CLIENTES_GERENCIAR`, `AGENDAMENTOS_*`, `FIDELIDADE_ADMINISTRAR`, entre outras).
+- **Painel gerencial (`/painel`) e desempenho (`/desempenho`):** indicadores financeiros com snapshot histórico de preço, ocupação real descontando bloqueios e sobreposições, ocupação na janela decorrida, rendimento por hora dos serviços (`valorPorHora`), mapa de demanda semanal e comparativos equivalentes de período.
+- **Inteligência de negócio acionável e metas mensais:** motor determinístico em português com diagnósticos baseados exclusivamente nos dados reais, resumo executivo *Seu negócio neste período* e acompanhamento de metas mensais persistidas por mês no banco H2.
+- **Retenção e fidelidade de clientes (`/clientes`):** classificação por comportamento de retorno (atrasado, esperado, agendamento futuro, recorrente, novo e histórico reduzido), intervalo mediano individual e cartão fidelidade com resgate de benefícios.
+- **Personalização de marca e PWA/Web Push:** tema escuro editorial configurável no painel, logo oficial e notificações via SSE e Web Push (RFC 8291 / VAPID).
+
 ## Execução com Docker
 
 ```bash
@@ -48,7 +57,7 @@ Acesse **http://localhost:8080** (ou pelo IP local da máquina no celular).
 ## Testes automatizados
 
 ```powershell
-.\mvnw.cmd test
+.\mvnw.cmd verify
 ```
 ## Arquitetura do Sistema
 

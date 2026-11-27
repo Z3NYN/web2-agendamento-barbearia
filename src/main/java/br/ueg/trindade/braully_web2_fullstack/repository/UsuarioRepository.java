@@ -21,4 +21,17 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>{
 
     @Query("select distinct u from Usuario u join u.permissoes p where u.ativo = true and p.nome = :papel")
     java.util.List<Usuario> findAtivosComPapel(@Param("papel") String papel);
+
+    @EntityGraph(attributePaths = "permissoes")
+    @Query("select distinct u from Usuario u join u.permissoes p where p.nome = 'CLIENTE'")
+    java.util.List<Usuario> findTodosClientes();
+
+    @Query("select count(distinct u.id) from Usuario u join u.permissoes p "
+            + "where p.nome = 'CLIENTE' and u.criadoEm >= :inicio and u.criadoEm < :fim")
+    long contarClientesCriadosNoPeriodo(@Param("inicio") java.time.LocalDateTime inicio,
+                                        @Param("fim") java.time.LocalDateTime fim);
+
+    @Query("select count(distinct u.id) from Usuario u join u.permissoes p "
+            + "where p.nome = 'CLIENTE' and u.criadoEm is null")
+    long contarClientesSemDataCadastro();
 }

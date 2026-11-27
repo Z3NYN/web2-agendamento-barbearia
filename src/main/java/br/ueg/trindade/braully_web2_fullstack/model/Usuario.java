@@ -26,6 +26,9 @@ public class Usuario {
     private String email;
     private boolean ativo = true;
     private long versaoSessao;
+    @Column(name = "criado_em")
+    @JsonIgnore
+    private java.time.LocalDateTime criadoEm;
     @Column(nullable = false, columnDefinition = "boolean default true not null")
     private boolean notifSistema = true;
     @Column(nullable = false, columnDefinition = "boolean default false not null")
@@ -47,6 +50,8 @@ public class Usuario {
     public void setNotifLembretes(boolean notifLembretes) { this.notifLembretes = notifLembretes; }
     @JsonIgnore public boolean isNotifFidelidade() { return notifFidelidade; }
     public void setNotifFidelidade(boolean notifFidelidade) { this.notifFidelidade = notifFidelidade; }
+    @JsonIgnore public java.time.LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(java.time.LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
 
     @ManyToMany
     private Set<Permissao> permissoes = new HashSet<>();

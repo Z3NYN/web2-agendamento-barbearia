@@ -90,13 +90,23 @@ class BraullyWeb2FullstackApplicationTests {
         assertThat(req("GET", "/servicos/" + id, admin, null).corpo().path("ativo").asBoolean()).isFalse();
         assertThat(req("GET", "/publico/servicos", null, null).corpo().toString()).doesNotContain("Serviço editado");
 
-        var p = req("POST", "/permissoes", admin, Map.of("nome", "RELATORIO", "descricao", "Teste"));
-        assertThat(p.codigo()).isEqualTo(200);
-        String url = "/permissoes/" + p.corpo().path("id").asLong();
+        var criacaoArbitraria = req("POST", "/permissoes", admin, Map.of("nome", "RELATORIO", "descricao", "Teste"));
+        assertThat(criacaoArbitraria.codigo()).isEqualTo(400);
+        var catalogo = req("GET", "/permissoes", admin, null);
+        assertThat(catalogo.codigo()).isEqualTo(200);
+        long permServicoId = -1;
+        for (JsonNode item : catalogo.corpo()) {
+            if ("SERVICOS_GERENCIAR".equals(item.path("nome").asText())) {
+                permServicoId = item.path("id").asLong();
+                break;
+            }
+        }
+        assertThat(permServicoId).isPositive();
+        String url = "/permissoes/" + permServicoId;
         assertThat(req("GET", url, admin, null).codigo()).isEqualTo(200);
-        assertThat(req("PUT", url, admin, Map.of("nome", "RELATORIO", "descricao", "Editada")).codigo()).isEqualTo(200);
-        assertThat(req("DELETE", url, admin, null).codigo()).isEqualTo(200);
-        assertThat(req("GET", url, admin, null).codigo()).isEqualTo(404);
+        assertThat(req("PUT", url, admin, Map.of("nome", "OUTRO_CODIGO", "descricao", "Editada")).codigo()).isEqualTo(409);
+        assertThat(req("PUT", url, admin, Map.of("nome", "SERVICOS_GERENCIAR", "titulo", "Gerenciar serviços", "descricao", "Cadastra, edita e desativa serviços do catálogo.")).codigo()).isEqualTo(200);
+        assertThat(req("DELETE", url, admin, null).codigo()).isEqualTo(409);
 
         var b = req("POST", "/barbeiros", admin, Map.of("nome", "Teste profissional", "ativo", true));
         assertThat(b.codigo()).isEqualTo(200);

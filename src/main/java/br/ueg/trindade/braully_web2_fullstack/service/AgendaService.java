@@ -12,6 +12,7 @@ import br.ueg.trindade.braully_web2_fullstack.model.*;
 import br.ueg.trindade.braully_web2_fullstack.model.Agendamento.Status;
 import br.ueg.trindade.braully_web2_fullstack.repository.AgendamentoRepository;
 import br.ueg.trindade.braully_web2_fullstack.security.Identidade;
+import br.ueg.trindade.braully_web2_fullstack.security.PermissaoSistema;
 
 @Service
 @Transactional
@@ -51,6 +52,9 @@ public class AgendaService {
     @Transactional(readOnly = true)
     public List<View> listar(Authentication auth, LocalDate data, LocalDate ate, Long barbeiro) {
         if (!equipe(auth)) return listarCliente(Identidade.id(auth), false);
+        boolean apenasConsultaCliente = data == null && ate == null && barbeiro == null
+                && Identidade.tem(auth, "CLIENTE") && !Identidade.tem(auth, "BARBEIRO") && !Identidade.tem(auth, "ADMIN");
+        if (apenasConsultaCliente) return listarCliente(Identidade.id(auth), false);
         LocalDate inicio = data == null ? Regra.agora().toLocalDate() : data;
         LocalDate fim = ate == null ? inicio : ate;
         if (fim.isBefore(inicio)) {
@@ -63,7 +67,7 @@ public class AgendaService {
                         inicio.atStartOfDay(), fim.plusDays(1).atStartOfDay())
                 .stream()
                 .filter(a -> (barbeiro == null || a.barbeiro.getId().equals(barbeiro)) && atende(a, auth))
-                .map(a -> view(a, true, 0))
+                .map(a -> view(a, podeAlterarSemAntecedencia(a, auth), 0))
                 .toList();
     }
 
@@ -83,12 +87,13 @@ public class AgendaService {
     @Transactional(readOnly = true)
     public View buscar(Long id, Authentication auth) {
         var a = autorizado(id, auth);
-        return view(a, equipe(auth), instalacao.atual().antecedenciaMinutos);
+        return view(a, podeAlterarSemAntecedencia(a, auth), instalacao.atual().antecedenciaMinutos);
     }
 
     @Transactional(readOnly = true)
     public List<LocalDateTime> horariosReagendamento(Long id, Long barbeiroId, LocalDate data, Authentication auth) {
         var a = autorizado(id, auth);
+        verificarPodeReagendarOuCancelar(a, auth);
         alterar(a, auth, instalacao.atual());
         var b = destino(a, barbeiroId, auth);
         return b.ativo ? disponibilidade.livres(b, data, duracao(a), id) : List.of();
@@ -96,10 +101,14 @@ public class AgendaService {
 
     public View criar(Nova e, Authentication auth) {
         var loja = instalacao.bloquear();
-        boolean admin = Identidade.tem(auth, "ADMIN");
-        if (!admin && !Identidade.tem(auth, "CLIENTE")) throw Regra.proibida();
-        if (e.clienteId() != null && !admin) throw Regra.proibida();
-        if (admin && e.clienteId() == null) throw Regra.invalida("Selecione o cliente da reserva.");
+        boolean gerencia = Identidade.temPermissao(auth, PermissaoSistema.AGENDAMENTOS_GERENCIAR);
+        boolean clientePerfil = Identidade.tem(auth, "CLIENTE");
+        if (!gerencia && !clientePerfil) throw Regra.proibida();
+        if (e.clienteId() != null && !gerencia) throw Regra.proibida();
+        if (e.clienteId() == null && !clientePerfil) {
+            if (gerencia) throw Regra.invalida("Selecione o cliente da reserva.");
+            throw Regra.proibida();
+        }
         Long clienteId = e.clienteId() == null ? Identidade.id(auth) : e.clienteId();
         Usuario cliente = usuarios.buscar(clienteId);
         if (!cliente.isAtivo() || cliente.getPermissoes().stream().noneMatch(p -> p.getNome().equals("CLIENTE"))) {
@@ -123,12 +132,13 @@ public class AgendaService {
         agenda.save(a);
         if (a.beneficio) fidelidade.vincular(e.premioId(), a);
         notificacoes.aoCriarAgendamento(a, auth);
-        return view(a, admin, loja.antecedenciaMinutos);
+        return view(a, gerencia, loja.antecedenciaMinutos);
     }
 
     public View reagendar(Long id, Reagendar e, Authentication auth) {
         var loja = instalacao.bloquear();
         var a = autorizado(id, auth);
+        verificarPodeReagendarOuCancelar(a, auth);
         alterar(a, auth, loja);
         var b = destino(a, e.barbeiroId(), auth);
         int duracao = duracao(a);
@@ -138,14 +148,19 @@ public class AgendaService {
         a.inicio = e.inicio();
         a.fim = e.inicio().plusMinutes(duracao);
         a.status = Status.RESERVADO;
-        notificacoes.aoReagendar(a, equipe(auth));
-        return view(a, equipe(auth), loja.antecedenciaMinutos);
+        boolean acaoEquipe = podeAlterarSemAntecedencia(a, auth);
+        notificacoes.aoReagendar(a, acaoEquipe);
+        return view(a, acaoEquipe, loja.antecedenciaMinutos);
     }
 
     public View status(Long id, Status destino, Authentication auth) {
         var loja = instalacao.bloquear();
         var a = autorizado(id, auth);
-        if (!equipe(auth) && destino != Status.CANCELADO) throw Regra.proibida();
+        if (destino == Status.CANCELADO) {
+            verificarPodeReagendarOuCancelar(a, auth);
+        } else if (!podeConfirmarOuConcluir(a, auth)) {
+            throw Regra.proibida();
+        }
         alterar(a, auth, loja);
         switch (destino) {
             case CONFIRMADO -> {
@@ -164,14 +179,15 @@ public class AgendaService {
             default -> throw Regra.conflito("Transição de status inválida.");
         }
         a.status = destino;
+        boolean acaoEquipe = podeAlterarSemAntecedencia(a, auth) || podeConfirmarOuConcluir(a, auth);
         if (destino == Status.CONFIRMADO) notificacoes.aoConfirmar(a);
-        else if (destino == Status.CANCELADO) notificacoes.aoCancelar(a, equipe(auth));
-        return view(a, equipe(auth), loja.antecedenciaMinutos);
+        else if (destino == Status.CANCELADO) notificacoes.aoCancelar(a, acaoEquipe);
+        return view(a, acaoEquipe, loja.antecedenciaMinutos);
     }
 
     private void alterar(Agendamento a, Authentication auth, Barbearia loja) {
         if (!DisponibilidadeService.pendente(a)) throw Regra.conflito("Esse atendimento já foi encerrado.");
-        if (!equipe(auth) && !a.inicio.isAfter(Regra.agora().plusMinutes(loja.antecedenciaMinutos))) {
+        if (!podeAlterarSemAntecedencia(a, auth) && !a.inicio.isAfter(Regra.agora().plusMinutes(loja.antecedenciaMinutos))) {
             throw Regra.conflito("O prazo para cancelar ou reagendar pelo site terminou.");
         }
     }
@@ -193,26 +209,58 @@ public class AgendaService {
     }
 
     private Barbeiro destino(Agendamento a, Long id, Authentication auth) {
-        if (Identidade.tem(auth, "BARBEIRO") && !Identidade.tem(auth, "ADMIN") && !a.barbeiro.getId().equals(id)) {
-            throw Regra.proibida();
+        if (!Identidade.temPermissao(auth, PermissaoSistema.AGENDAMENTOS_GERENCIAR) && !a.barbeiro.getId().equals(id)) {
+            if (!ehClienteProprio(a, auth)) {
+                throw Regra.proibida();
+            }
         }
         return catalogo.barbeiro(id);
     }
 
     private Agendamento autorizado(Long id, Authentication auth) {
         var a = agenda.findById(id).orElseThrow(Regra::inexistente);
-        boolean autorizado = equipe(auth) ? atende(a, auth) : a.cliente.getId().equals(Identidade.id(auth));
+        boolean autorizado = atende(a, auth) || ehClienteProprio(a, auth);
         if (!autorizado) throw Regra.inexistente();
         return a;
     }
 
+    private boolean temEscopoTotalAgenda(Authentication auth) {
+        return Identidade.temAlgumaPermissao(auth,
+                PermissaoSistema.AGENDAMENTOS_CONSULTAR,
+                PermissaoSistema.AGENDAMENTOS_GERENCIAR,
+                PermissaoSistema.AGENDAMENTOS_CONFIRMAR_CONCLUIR);
+    }
+
     private boolean equipe(Authentication auth) {
-        return Identidade.tem(auth, "ADMIN") || Identidade.tem(auth, "BARBEIRO");
+        return Identidade.tem(auth, "BARBEIRO") || temEscopoTotalAgenda(auth);
+    }
+
+    private boolean ehProprioBarbeiro(Agendamento a, Authentication auth) {
+        var conta = a.barbeiro.getUsuario();
+        return Identidade.tem(auth, "BARBEIRO") && conta != null && conta.getId().equals(Identidade.id(auth));
+    }
+
+    private boolean ehClienteProprio(Agendamento a, Authentication auth) {
+        return Identidade.tem(auth, "CLIENTE") && a.cliente.getId().equals(Identidade.id(auth));
     }
 
     private boolean atende(Agendamento a, Authentication auth) {
-        var conta = a.barbeiro.getUsuario();
-        return Identidade.tem(auth, "ADMIN") || (conta != null && conta.getId().equals(Identidade.id(auth)));
+        return temEscopoTotalAgenda(auth) || ehProprioBarbeiro(a, auth);
+    }
+
+    private boolean podeConfirmarOuConcluir(Agendamento a, Authentication auth) {
+        return Identidade.temPermissao(auth, PermissaoSistema.AGENDAMENTOS_CONFIRMAR_CONCLUIR) || ehProprioBarbeiro(a, auth);
+    }
+
+    private boolean podeAlterarSemAntecedencia(Agendamento a, Authentication auth) {
+        return Identidade.temPermissao(auth, PermissaoSistema.AGENDAMENTOS_GERENCIAR) || ehProprioBarbeiro(a, auth);
+    }
+
+    private void verificarPodeReagendarOuCancelar(Agendamento a, Authentication auth) {
+        boolean permitido = Identidade.temPermissao(auth, PermissaoSistema.AGENDAMENTOS_GERENCIAR)
+                || ehProprioBarbeiro(a, auth)
+                || ehClienteProprio(a, auth);
+        if (!permitido) throw Regra.proibida();
     }
 
     private View view(Agendamento a, boolean equipe, int antecedencia) {
